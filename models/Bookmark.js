@@ -18,7 +18,7 @@ module.exports = function(models) {
             }
         },
         userId: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.UUID,
             allowNull: false,
             validate: {
                 notNull: true
@@ -30,6 +30,9 @@ module.exports = function(models) {
         }
     }, { 
         tableName: 'bookmarks',
-        underscored: true 
+        underscored: true,
+        timestamps: true,
+        createdAt: 'created_at',
+        updatedAt: 'updated_at' 
     })
 }

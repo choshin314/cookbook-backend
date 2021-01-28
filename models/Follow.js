@@ -4,7 +4,7 @@ const sequelize = require('../config/database');
 module.exports = function(models) {
     return sequelize.define('Follow', {
         followerId: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.UUID,
             allowNull: false,
             validate: {
                 notNull: true
@@ -15,7 +15,7 @@ module.exports = function(models) {
             }
         },
         followeeId: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.UUID,
             allowNull: false,
             validate: {
                 notNull: true
@@ -32,7 +32,9 @@ module.exports = function(models) {
         }
     }, { 
         tableName: 'follows',
-        timestamps: false,
+        timestamps: true,
+        createdAt: 'created_at',
+        updatedAt: 'updated_at',
         underscored: true 
     })
 }

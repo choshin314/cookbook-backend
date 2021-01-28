@@ -64,7 +64,7 @@ Recipe.associate = function(models) {
     Recipe.belongsTo(models.User, {
         foreignKey: {
             name: 'user_id',
-            type: DataTypes.INTEGER,
+            type: DataTypes.UUID,
             allowNull: false
         },
         onDelete: 'CASCADE'
