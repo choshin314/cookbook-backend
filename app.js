@@ -12,7 +12,7 @@ const recipeRoutes = require('./routes/recipes');
 sequelize.authenticate()
     .then(() => console.log('database connected'))
     .catch(err => console.log('Error: ' + err));
-
+    
 //-------------APPWIDE MIDDLEWARE--------------//
 app.use(cors())
 app.use(express.json());
