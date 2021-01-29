@@ -18,7 +18,7 @@ const Ingredient = sequelize.define('Ingredient', {
             isAlpha: true
         }
     },
-    ingName: {
+    content: {
         type: DataTypes.STRING,
         allowNull: false,
         validate: {

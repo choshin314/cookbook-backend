@@ -43,7 +43,8 @@ router.get('/:username', async (req, res, next) => {
             where: { username: req.params.username }
         })
         if (!user) throw new Error('no such user');
-        res.json(user)
+        const test = await User.findAll({ include: [Recipe, { model: User, as: 'followee_id'}]})
+        res.json(test)
     } catch(err) {
         console.log(err.message);
         return next(new HttpError('Could not find user with that name', 404))
@@ -56,7 +57,6 @@ router.get('/:userId/stats', async (req, res, next) => {
 
     res.send(req.params.userId)
 })
-
 
 
 router.get('/:userId/info', async (req, res) => {
