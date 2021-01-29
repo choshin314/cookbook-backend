@@ -14,8 +14,7 @@ const Ingredient = sequelize.define('Ingredient', {
         type: DataTypes.STRING,
         allowNull: false,
         validate: {
-            notNull: true,
-            isAlpha: true
+            notNull: true
         }
     },
     content: {
@@ -23,7 +22,6 @@ const Ingredient = sequelize.define('Ingredient', {
         allowNull: false,
         validate: {
             notNull: true,
-            isAlpha: true,
             len: [3]
         }
     },

@@ -33,8 +33,7 @@ const Recipe = sequelize.define('Recipe', {
         type: DataTypes.SMALLINT,
         allowNull: false,
         validate: {
-            notNull: true,
-            max: 10
+            notNull: true
         }
     },
     prepTime: {
@@ -75,12 +74,10 @@ Recipe.associate = function(models) {
     Recipe.belongsToMany(models.User, {
         through: models.Like
     });
-    Recipe.belongsToMany(models.Tag, {
-        through: 'recipes_tags'
-    });
-    Recipe.hasMany(models.Review);
-    Recipe.hasMany(models.Ingredient);
-    Recipe.hasMany(models.Instruction);
+    Recipe.hasMany(models.Tag, { as: 'tags', foreignKey: 'recipe_id' });
+    Recipe.hasMany(models.Review, { as: 'reviews', foreignKey: 'recipe_id'});
+    Recipe.hasMany(models.Ingredient, {as: 'ingredients', foreignKey: 'recipe_id'});
+    Recipe.hasMany(models.Instruction, {as: 'instructions', foreignKey: 'recipe_id'});
 }
 
 module.exports = Recipe;

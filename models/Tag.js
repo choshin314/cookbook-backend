@@ -6,9 +6,9 @@ const Tag = sequelize.define('Tag', {
         type: DataTypes.STRING(16),
         allowNull: false,
         validate: {
-            isAlpha: true,
+            is: /^[a-zA-Z0-9_]*$/,
             notNull: true,
-            len: [4, 16]
+            len: [3, 20]
         }
     }
 }, { 
@@ -18,8 +18,13 @@ const Tag = sequelize.define('Tag', {
 })
 
 Tag.associate = function (models) {
-    Tag.belongsToMany(models.Recipe, {
-        through:'recipes_tags'
+    Tag.belongsTo(models.Recipe, {
+        foreignKey: {
+            name: 'recipe_id',
+            type: DataTypes.INTEGER,
+            allowNull: false
+        },
+        as: 'recipe'
     })
 }
 

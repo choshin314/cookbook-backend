@@ -7,7 +7,7 @@ const Instruction = sequelize.define('Instruction', {
         allowNull: false,
         validate: {
             notNull: true,
-            len: [15]
+            len: [5]
         }
     },
     position: {
