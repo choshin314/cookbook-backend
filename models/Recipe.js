@@ -69,10 +69,14 @@ Recipe.associate = function(models) {
         onDelete: 'CASCADE'
     });
     Recipe.belongsToMany(models.User, {
-        through: models.Bookmark
+        through: models.Bookmark,
+        foreignKey: 'recipe_id',
+        as: 'bookmarkedBy'
     });
     Recipe.belongsToMany(models.User, {
-        through: models.Like
+        through: models.Like,
+        foreignKey: 'recipe_id',
+        as: 'likedBy'
     });
     Recipe.hasMany(models.Tag, { as: 'tags', foreignKey: 'recipe_id' });
     Recipe.hasMany(models.Review, { as: 'reviews', foreignKey: 'recipe_id'});

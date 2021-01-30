@@ -58,22 +58,29 @@ const User = sequelize.define('User', {
 })
 
 User.associate = function(models) {
-    User.hasMany(models.Recipe);
+    User.hasMany(models.Recipe, {
+        foreignKey: 'user_id',
+        as: 'userRecipes'
+    });
     User.hasMany(models.Review);
     User.belongsToMany(models.Recipe, {
-        through: models.Bookmark
+        through: models.Bookmark,
+        foreignKey: 'user_id',
+        as: 'bookmarkedRecipes'
     });
     User.belongsToMany(models.Recipe, {
-        through: models.Like
+        through: models.Like,
+        foreignKey: 'user_id',
+        as: 'likedRecipes'
     });
     User.belongsToMany(User, {
-        as: 'follower_id',
-        foreignKey: 'follower_id',
+        as: 'followers',
+        foreignKey: 'followee_id',
         through: models.Follow
     });    
     User.belongsToMany(User, {
-        as: 'followee_id',
-        foreignKey: 'followee_id',
+        as: 'following',
+        foreignKey: 'follower_id',
         through: models.Follow
     }); 
 }

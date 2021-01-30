@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const upload = multer({ dest: '../uploads/'});
+const fileUpload = require('express-fileupload')
 
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -14,9 +13,9 @@ const verifyAuth = require('../middleware/verifyAuth');
 const maxAge = 60*60*24;
 
 
-router.post('/register', upload.single('profilePic'), async (req, res, next) => {
+router.post('/register', fileUpload({useTempFiles: true}), async (req, res, next) => {
     const newUserDraft = req.body;
-    newUserDraft.profilePic = await uploadPic(req.file.path, next);
+    newUserDraft.profilePic = await uploadPic(req.files.profilePic.tempFilePath, next);
     newUserDraft.password = await bcrypt.hash(newUserDraft.password, 10);
     try {
         const newUser = await User.create(newUserDraft);
@@ -36,26 +35,77 @@ router.post('/register', upload.single('profilePic'), async (req, res, next) => 
     }
 })
 
+router.post('/login', async (req, res, next) => {
+    const { username, email, password } = req.body;
+    let user;
+    try {
+        user = await User.findOne({ where: { username: username }});
+        if (!user) throw new Error('uh oh')
+    } catch (err) {
+        console.log(err.message)
+        return next(new HttpError(err.message, 401))
+    }
+    try {
+        const result = await bcrypt.compare(password, user.password);
+        const accessToken = await jwt.sign({ userId: user.id }, process.env.ACCESS_TOKEN_SECRET, {expiresIn: maxAge});
+        res.json({ accessToken, user: { 
+            id: user.id, 
+            username: user.username, 
+            firstName: user.firstName, 
+            lastName: user.lastName, 
+            email: user.email,
+            profilePic: user.profilePic,
+            bio: user.bio
+        }})
+    } catch (err) {
+        console.log(err.message);
+        return next(new HttpError('Invalid credentials or user does not exist', 401))
+    }
+})
+
 router.get('/:username', async (req, res, next) => {
     try {
         const user = await User.findOne({ 
             attributes: ['username', 'id', 'firstName', 'lastName', 'profilePic', 'bio'],
+            include: [
+                { model: Recipe, as: 'userRecipes' }, 
+                { model: Recipe, as: 'bookmarkedRecipes' },
+                { model: User, as: 'followers', attributes: ['username'] }, 
+                { model: User, as: 'following', attributes: ['username'] }
+            ],
             where: { username: req.params.username }
         })
-        if (!user) throw new Error('no such user');
-        const test = await User.findAll({ include: [Recipe, { model: User, as: 'followee_id'}]})
-        res.json(test)
+        res.json(user)
     } catch(err) {
         console.log(err.message);
         return next(new HttpError('Could not find user with that name', 404))
     }
 })
 
-router.get('/:userId/stats', async (req, res, next) => {
-    const userId = req.params.userId;
+router.get('/:username/stats', async (req, res, next) => {
+    const username = req.params.username;
     //get user follower count, following count, recipe count
-
-    res.send(req.params.userId)
+    try {
+        const stats = {};
+        const user = await User.findOne({ 
+            attributes: ['username'],
+            include: [
+                { model: Recipe, as: 'userRecipes', attributes: ['id'] }, 
+                { model: User, as: 'followers', attributes: ['username'] }, 
+                { model: User, as: 'following', attributes: ['username'] }
+            ],
+            where: { username: username }
+        });
+        
+        stats.recipeCount = user.userRecipes.length;
+        stats.followerCount = user.followers.length;
+        stats.followingCount = user.following.length;
+        
+        res.json(stats)
+    } catch(err) {
+        console.log(err.message);
+        return next(new HttpError('Could not find stats', 404))
+    }
 })
 
 
