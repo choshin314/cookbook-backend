@@ -3,13 +3,13 @@ const fs = require('fs');
 const cors = require('cors');
 const express = require('express');
 const app = express();
-const sequelize = require('./config/database');
-const models = require('./models');
+const db = require('./config/database');
+const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const recipeRoutes = require('./routes/recipes');
 
 //-------------DB--------------//
-sequelize.authenticate()
+db.sequelize.authenticate()
     .then(() => console.log('database connected'))
     .catch(err => console.log('Error: ' + err));
     
@@ -19,7 +19,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 //-------------ROUTES--------------//
-
+app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/recipes', recipeRoutes);
 

@@ -1,7 +1,7 @@
-const { Sequelize, DataTypes } = require('sequelize');
+const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-module.exports = function(models) {
+module.exports = function(sequelize, models) {
     return sequelize.define('Follow', {
         followerId: {
             type: DataTypes.UUID,

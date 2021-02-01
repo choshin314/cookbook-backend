@@ -1,7 +1,6 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
 
-module.exports = function(models) {
+module.exports = function(sequelize, models) {
     return sequelize.define('Like', {
         recipeId: {
             type: DataTypes.INTEGER,

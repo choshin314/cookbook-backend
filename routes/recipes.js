@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const fileUpload = require('express-fileupload');
-const models = require('../models');
 const {convertToSlug} = require('../helpers');
-const {User, Tag, Ingredient, Recipe, Instruction } = models;
+const db = require('../config/database')
+const { User, Tag, Ingredient, Recipe, Instruction, Follow, sequelize } = db;
 const verifyAuth = require('../middleware/verifyAuth');
 const multer = require('multer');
 const upload = multer({ dest: '../uploads/'});
@@ -70,6 +70,7 @@ router.get('/bookmarks/:username', async (req, res, next) => {
 router.use(verifyAuth);
 router.post('/', fileUpload({useTempFiles: true}), async (req, res, next) => {
     if (!req.user.userId) return next(new HttpError('Not authorized', 401));
+    let body = JSON.parse(req.body.formJSON);
     let { cookTime, prepTime, servings, instructions, tags, ingredients } = req.body;
     cookTime = parseInt(cookTime);
     prepTime = parseInt(prepTime);
