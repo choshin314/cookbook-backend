@@ -3,7 +3,7 @@ const router = express.Router();
 const fileUpload = require('express-fileupload');
 const {convertToSlug} = require('../helpers');
 const db = require('../config/database')
-const { User, Tag, Ingredient, Recipe, Instruction, Follow, sequelize } = db;
+const { User, Tag, Ingredient, Recipe, Instruction, Follow, sequelize, Sequelize: {Op} } = db;
 const verifyAuth = require('../middleware/verifyAuth');
 const multer = require('multer');
 const upload = multer({ dest: '../uploads/'});
@@ -19,6 +19,63 @@ router.get('/', async (req, res) => {
     res.send(`Retrieving`)
 })
 
+router.get('/feed/private', verifyAuth, async (req, res, next) => {
+    const lastFetched = new Date(req.query.lastFetched)
+    const user = await User.findOne({ 
+        include: [ { model: User, as: 'following', attributes: ['id'] }]
+    })
+    console.log(user)
+    const recipes = await Recipe.findAll({ 
+        where: { updated_at: { [Op.gt]: lastFetched }}
+    })
+    res.json(recipes)
+})
+
+router.get('/feed/public', async (req, res, next) => {
+    const offset = req.query.offset || 0;
+    try {
+        const recipes = await sequelize.query(`
+            SELECT 
+                recipes.*, 
+                count(likes.*) "likeCount", 
+                users.username, users.profile_pic, users.first_name, users.last_name,
+                count(reviews.*) "reviewCount",
+                avg(reviews.rating) "avgRating"
+            FROM recipes 
+            LEFT JOIN likes ON recipes.id = likes.recipe_id
+            LEFT JOIN reviews ON recipes.id = reviews.recipe_id
+            LEFT JOIN users ON recipes.user_id = users.id   
+            GROUP BY recipes.id, users.username, users.profile_pic, users.first_name, users.last_name 
+            ORDER BY "likeCount", recipes.created_at, recipes.title
+            LIMIT 5 OFFSET ${offset}
+        `);
+        const formattedRecipes = recipes[0].map(r => ({
+            id: r.id,
+            title: r.title,
+            slug: r.slug,
+            coverImg: r.cover_img,
+            intro: r.intro,
+            servings: r.servings,
+            prepTime: r.prep_time,
+            cookTime: r.cook_time,
+            likeCount: r.likeCount,
+            reviewCount: r.reviewCount,
+            avgRating: r.avgRating,
+            user: {
+                userId: r.user_id,
+                username: r.username,
+                profilePic: r.profile_pic,
+                firstName: r.first_name,
+                lastName: r.last_name
+            }
+        }))
+        res.json(formattedRecipes)
+    } catch (err) {
+        return next(new HttpError('Could not retrieve recipes', 500))
+    }
+})
+
+
 //----------GET RECIPE BY ID--------------//
 router.get('/:recipeId', async (req, res, next) => {
     Recipe.findByPk(req.params.recipeId, { include: [{model: User, attributes: ['username']}]})
@@ -28,6 +85,7 @@ router.get('/:recipeId', async (req, res, next) => {
         })
         .catch(err => next(new HttpError(err.message, 404)))
 })
+
 
 //-----------GET RECIPE BY USER------------//
 router.get('/user/:username', async (req, res, next) => {
