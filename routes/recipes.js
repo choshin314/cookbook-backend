@@ -4,7 +4,15 @@ const fileUpload = require('express-fileupload');
 const {convertToSlug} = require('../helpers');
 const db = require('../config/database')
 const { 
-    User, Review, Tag, Ingredient, Recipe, Instruction, Follow, rawConfig, sequelize, Sequelize: {Op} 
+    User, 
+    Review, 
+    Bookmark,
+    Tag, 
+    Ingredient, 
+    Recipe, 
+    Instruction, 
+    Follow, 
+    rawConfig, sequelize, Sequelize: {Op} 
 } = db;
 const verifyAuth = require('../middleware/verifyAuth');
 const multer = require('multer');
@@ -211,6 +219,20 @@ router.post('/', fileUpload({useTempFiles: true}), async (req, res, next) => {
     } catch(err) {
         console.log(err.message);
         return next(new HttpError('Could not create recipe. Please try again later', 400))
+    }
+})
+
+router.get('/bookmarks', async (req, res, next) => {
+    try {
+        const userId = req.user.userId
+        const bookmarkIds = await Bookmark.findAll({
+            attributes: [ 'recipe_id' ],
+            where: { user_id: userId }
+        })
+        res.status(200).json(bookmarkIds);
+    } catch (err) {
+        console.log(err.message);
+        return next(new HttpError('Could not retrieve bookmarks', 404))
     }
 })
 
