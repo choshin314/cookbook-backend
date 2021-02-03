@@ -3,7 +3,9 @@ const router = express.Router();
 const fileUpload = require('express-fileupload');
 const {convertToSlug} = require('../helpers');
 const db = require('../config/database')
-const { User, Tag, Ingredient, Recipe, Instruction, Follow, sequelize, Sequelize: {Op} } = db;
+const { 
+    User, Review, Tag, Ingredient, Recipe, Instruction, Follow, rawConfig, sequelize, Sequelize: {Op} 
+} = db;
 const verifyAuth = require('../middleware/verifyAuth');
 const multer = require('multer');
 const upload = multer({ dest: '../uploads/'});
@@ -20,11 +22,20 @@ router.get('/', async (req, res) => {
 })
 
 router.get('/feed/private', verifyAuth, async (req, res, next) => {
-    const lastFetched = new Date(req.query.lastFetched)
+    const lastFetched = new Date() - 1209600000
     const user = await User.findOne({ 
-        include: [ { model: User, as: 'following', attributes: ['id'] }]
+        include: [ { 
+            model: User, 
+            as: 'following', 
+            attributes: ['id'],
+            include: [ {
+                model: Recipe,
+                as: 'userRecipes'
+            } ] 
+        }]
     })
-    console.log(user)
+
+    console.log(user);
     const recipes = await Recipe.findAll({ 
         where: { updated_at: { [Op.gt]: lastFetched }}
     })
@@ -92,14 +103,26 @@ router.get('/user/:username', async (req, res, next) => {
     const username = req.params.username; 
     if (!username) return next(new HttpError('Bad request, need more info', 400));
     try {
-        const user = await User.findOne({
-            attributes: ['id'],
-            include: [{ model: Recipe, as: 'userRecipes', include: [
-                { model: User, attributes: ['id', 'profilePic', 'username', 'firstName', 'lastName'] }
-            ]}],
-            where: { username: username }
-        });
-        res.status(200).json(user.userRecipes)
+        const {id} = await User.findOne({ attributes: ['id'], where: { username: username } });
+        const recipes = await sequelize.query(`
+            SELECT 
+                recipes.*, 
+                count(reviews.*) "reviewCount", 
+                avg(reviews.rating) "avgRating", 
+                count(likes.*) "likeCount" ,
+                users.id "user.id", 
+                users.username "user.username", 
+                users.profile_pic "user.profilePic", 
+                users.first_name "user.firstName", 
+                users.last_name "user.lastName"
+            FROM recipes
+            INNER JOIN users ON recipes.user_id = users.id
+            LEFT JOIN reviews ON recipes.id = reviews.recipe_id
+            LEFT JOIN likes ON recipes.id = likes.recipe_id
+            WHERE recipes.user_id = '${id}'
+            GROUP BY recipes.id, users.id         
+        `, rawConfig(Recipe))
+        res.status(200).json(recipes)
     } catch (err) {
         console.log(err.message);
         return next(new HttpError('Could not retrieve recipes', 400))
@@ -110,14 +133,28 @@ router.get('/bookmarks/:username', async (req, res, next) => {
     const username = req.params.username; 
     if (!username) return next(new HttpError('Bad request, need more info', 400));
     try {
-        const user = await User.findOne({
-            attributes: ['id'],
-            include: [{ model: Recipe, as: 'bookmarkedRecipes', include: [
-                { model: User, attributes: ['id', 'profilePic', 'username', 'firstName', 'lastName'] }
-            ]}],
-            where: { username: username }
-        })
-        res.status(200).json(user.bookmarkedRecipes);
+        const {id} = await User.findOne({ attributes: ['id'], where: { username: username } });
+        const bookmarks = await sequelize.query(`
+            SELECT
+                bookmarks.recipe_id,    
+                recipes.*,
+                count(reviews.*) "reviewCount",
+                avg(reviews.rating) "avgRating",
+                count(likes.*) "likeCount",
+                users.id "user.id",
+                users.username "user.username", 
+                users.profile_pic "user.profilePic", 
+                users.first_name "user.firstName", 
+                users.last_name "user.lastName"
+            FROM bookmarks 
+            INNER JOIN recipes ON bookmarks.recipe_id = recipes.id 
+            INNER JOIN users ON recipes.user_id = users.id 
+            LEFT JOIN reviews ON bookmarks.recipe_id = reviews.recipe_id 
+            LEFT JOIN likes ON bookmarks.recipe_id = likes.recipe_id  
+            WHERE bookmarks.user_id = '${id}' 
+            GROUP BY recipes.id, users.id, bookmarks.recipe_id
+        `, rawConfig(Recipe))
+        res.status(200).json(bookmarks);
     } catch (err) {
         console.log(err.message);
         return next(new HttpError('Could not retrieve recipes', 400))

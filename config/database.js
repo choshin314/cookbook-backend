@@ -24,6 +24,8 @@ for (let modelName in models) {
     }
 }
 
-const db = { ...models, sequelize, Sequelize };
+const rawConfig = (model) => ({ model: model, mapToModel: true, nest: true, raw: true });
+
+const db = { ...models, rawConfig, sequelize, Sequelize };
 
 module.exports = db;

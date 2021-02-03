@@ -5,7 +5,7 @@ const fileUpload = require('express-fileupload')
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../config/database')
-const { User, Recipe, Follow, sequelize } = db;
+const { User, Recipe, Review, Follow, sequelize } = db;
 const HttpError = require('../helpers/http-error');
 const uploadPic = require('../helpers/file-uploads');
 const verifyAuth = require('../middleware/verifyAuth');
@@ -27,6 +27,7 @@ router.get('/:username', async (req, res, next) => {
             ],
             where: { username: req.params.username }
         })
+        console.log(user)
         res.json(user)
     } catch(err) {
         console.log(err.message);
