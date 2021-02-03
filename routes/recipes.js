@@ -89,7 +89,31 @@ router.get('/feed/public', async (req, res, next) => {
 
 //----------GET RECIPE BY ID--------------//
 router.get('/:recipeId', async (req, res, next) => {
-    Recipe.findByPk(req.params.recipeId, { include: [{model: User, attributes: ['username']}]})
+    Recipe.findByPk(req.params.recipeId, { 
+        attributes: [
+            'id','title','slug','coverImg','intro','servings','prepTime','cookTime',
+            [sequelize.fn('COUNT', sequelize.col('reviews.id')), 'reviewCount'],
+            [sequelize.fn('AVG', sequelize.col('reviews.rating')), 'avgRating'],
+            [sequelize.fn('COUNT', sequelize.col('likedBy.username')), 'likeCount']
+        ],
+        include: [
+            { model: User, attributes: ['username', 'profilePic', 'firstName', 'lastName']},
+            { model: User, as: 'likedBy' },
+            { model: Review, as: 'reviews' },
+            { model: Ingredient, as: 'ingredients', order: ['position','ASC'] },
+            { model: Instruction, as: 'instructions', order: ['position','ASC']  }
+        ],
+        group: [
+            'Recipe.id', 
+            'reviews.id', 
+            'User.id', 
+            'likedBy.id', 
+            "likedBy->Like.recipe_id", 
+            "likedBy->Like.user_id",
+            'ingredients.id',
+            'instructions.id'
+        ]
+    })
         .then(recipe => {
             if (!recipe) throw new Error('Recipe was not found')
             res.json(recipe)
