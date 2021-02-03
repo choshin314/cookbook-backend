@@ -189,20 +189,15 @@ router.get('/bookmarks/:username', async (req, res, next) => {
 router.use(verifyAuth);
 router.post('/', fileUpload({useTempFiles: true}), async (req, res, next) => {
     if (!req.user.userId) return next(new HttpError('Not authorized', 401));
-    let body = JSON.parse(req.body.formJSON);
-    let { cookTime, prepTime, servings, instructions, tags, ingredients } = req.body;
-    cookTime = parseInt(cookTime);
-    prepTime = parseInt(prepTime);
-    servings = parseInt(servings);
-    instructions = JSON.parse(instructions);
-    tags = JSON.parse(tags);
-    ingredients = JSON.parse(ingredients);
+    let { 
+        title, introText: intro, cookTime, prepTime, servings, instructions, tags, ingredients 
+    } = JSON.parse(req.body.formJSON);
     try {
         let coverImg = await uploadPic(req.files.coverImg.tempFilePath);
         const recipe = await Recipe.create({
-            title: req.body.title,
-            intro: req.body.introText,
-            slug: convertToSlug(req.body.title),
+            title,
+            intro,
+            slug: convertToSlug(title),
             coverImg,
             servings,
             prepTime,
