@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const HttpError = require('../helpers/http-error');
 
 function verifyAuth(req, res, next) {
     try {

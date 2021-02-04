@@ -27,11 +27,10 @@ router.get('/:username', async (req, res, next) => {
             ],
             where: { username: req.params.username }
         })
-        console.log(user)
-        res.json(user)
+        res.json({ data: user })
     } catch(err) {
         console.log(err.message);
-        return next(new HttpError('Could not find user with that name', 404))
+        return next(new HttpError('Could not find user', 404))
     }
 })
 
@@ -54,7 +53,7 @@ router.get('/:username/stats', async (req, res, next) => {
         stats.followerCount = user.followers.length;
         stats.followingCount = user.following.length;
         
-        res.json(stats)
+        res.json({ data: stats })
     } catch(err) {
         console.log(err.message);
         return next(new HttpError('Could not find stats', 404))

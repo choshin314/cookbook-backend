@@ -22,15 +22,20 @@ router.post('/register', async (req, res, next) => {
     try {
         const newUser = await User.create(newUserDraft);
         const accessToken = await createAccessToken(newUser.id);
-        res.status(201).json({ accessToken, user: { 
-            id: newUser.id,
-            firstName: newUser.firstName,
-            lastName: newUser.lastName,
-            username: newUser.username,
-            email: newUser.email,
-            profilePic: newUser.profilePic,
-            bio: newUser.bio
-        }});
+        res.status(201).json({ data:
+            { 
+                accessToken, 
+                user: { 
+                    id: newUser.id,
+                    firstName: newUser.firstName,
+                    lastName: newUser.lastName,
+                    username: newUser.username,
+                    email: newUser.email,
+                    profilePic: newUser.profilePic,
+                    bio: newUser.bio
+                }
+            }
+        });
     } catch(err) {
         console.log('db error: ', err.message);
         next(new HttpError('Could not register account, try again later', 500));
@@ -55,15 +60,20 @@ router.post('/login', async (req, res, next) => {
         const match = await bcrypt.compare(password, user.password);
         if (!match) throw new Error('Password does not match'); 
         const accessToken = await createAccessToken(user.id);
-        res.json({ accessToken, user: { 
-            id: user.id, 
-            username: user.username, 
-            firstName: user.firstName, 
-            lastName: user.lastName, 
-            email: user.email,
-            profilePic: user.profilePic,
-            bio: user.bio
-        }})
+        res.json({
+            data: { 
+                accessToken, 
+                user: { 
+                    id: user.id, 
+                    username: user.username, 
+                    firstName: user.firstName, 
+                    lastName: user.lastName, 
+                    email: user.email,
+                    profilePic: user.profilePic,
+                    bio: user.bio
+                }
+            }
+        })
     } catch (err) {
         console.log(err.message);
         return next(new HttpError('Invalid credentials or user does not exist', 401))
@@ -75,8 +85,12 @@ router.get('/user', verifyAuth, async (req, res, next) => {
         id, username, firstName, lastName, email, profilePic, bio
     } = await User.findByPk(req.user.userId);
     res.json({
-        user: { id, username, firstName, lastName, email, profilePic, bio },
-        accessToken: req.token
+        data: {
+            user: { 
+                id, username, firstName, lastName, email, profilePic, bio 
+            },
+            accessToken: req.token
+        }
     });
 })
 

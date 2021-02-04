@@ -88,8 +88,9 @@ router.get('/feed/public', async (req, res, next) => {
                 lastName: r.last_name
             }
         }))
-        res.json(formattedRecipes)
+        res.json({ data: formattedRecipes })
     } catch (err) {
+        console.log(err.message)
         return next(new HttpError('Could not retrieve recipes', 500))
     }
 })
@@ -124,7 +125,7 @@ router.get('/:recipeId', async (req, res, next) => {
     })
         .then(recipe => {
             if (!recipe) throw new Error('Recipe was not found')
-            res.json(recipe)
+            res.json({ data: recipe })
         })
         .catch(err => next(new HttpError(err.message, 404)))
 })
@@ -133,7 +134,7 @@ router.get('/:recipeId', async (req, res, next) => {
 //-----------GET RECIPE BY USER------------//
 router.get('/user/:username', async (req, res, next) => {
     const username = req.params.username; 
-    if (!username) return next(new HttpError('Bad request, need more info', 400));
+    if (!username) return next(new HttpError('Bad request', 400));
     try {
         const {id} = await User.findOne({ attributes: ['id'], where: { username: username } });
         const recipes = await sequelize.query(`
@@ -154,10 +155,10 @@ router.get('/user/:username', async (req, res, next) => {
             WHERE recipes.user_id = '${id}'
             GROUP BY recipes.id, users.id         
         `, rawConfig(Recipe))
-        res.status(200).json(recipes)
+        res.status(200).json({ data: recipes })
     } catch (err) {
         console.log(err.message);
-        return next(new HttpError('Could not retrieve recipes', 400))
+        return next(new HttpError('Could not retrieve recipes', 500))
     }
 })
 
@@ -186,7 +187,7 @@ router.get('/bookmarks/:username', async (req, res, next) => {
             WHERE bookmarks.user_id = '${id}' 
             GROUP BY recipes.id, users.id, bookmarks.recipe_id
         `, rawConfig(Recipe))
-        res.status(200).json(bookmarks);
+        res.status(200).json({ data: bookmarks });
     } catch (err) {
         console.log(err.message);
         return next(new HttpError('Could not retrieve recipes', 400))
@@ -215,24 +216,10 @@ router.post('/', fileUpload({useTempFiles: true}), async (req, res, next) => {
             ingredients: ingredients.map((ing, i) => ({ content: ing.content, qty: ing.qty, unit: ing.unit, position: i })),
             user_id: req.user.userId,
         }, { include: [ {model: Tag, as: 'tags'}, {model: Ingredient, as: "ingredients"}, {model: Instruction, as: "instructions"} ]})
-        res.status(201).json(recipe)
+        res.status(201).json({ data: recipe })
     } catch(err) {
         console.log(err.message);
         return next(new HttpError('Could not create recipe. Please try again later', 400))
-    }
-})
-
-router.get('/bookmarks', async (req, res, next) => {
-    try {
-        const userId = req.user.userId
-        const bookmarkIds = await Bookmark.findAll({
-            attributes: [ 'recipe_id' ],
-            where: { user_id: userId }
-        })
-        res.status(200).json(bookmarkIds);
-    } catch (err) {
-        console.log(err.message);
-        return next(new HttpError('Could not retrieve bookmarks', 404))
     }
 })
 
