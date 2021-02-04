@@ -3,7 +3,7 @@ const sequelize = require('../config/database');
 
 module.exports = function(sequelize, models) {
     return sequelize.define('Follow', {
-        followerId: {
+        follower_id: {
             type: DataTypes.UUID,
             allowNull: false,
             validate: {
@@ -14,7 +14,7 @@ module.exports = function(sequelize, models) {
                 key: 'id'
             }
         },
-        followeeId: {
+        followee_id: {
             type: DataTypes.UUID,
             allowNull: false,
             validate: {
@@ -25,7 +25,7 @@ module.exports = function(sequelize, models) {
                 key: 'id'
             }
         },
-        followeeNotified: {
+        followee_notified: {
             type: DataTypes.BOOLEAN,
             allowNull: false,
             defaultValue: false
