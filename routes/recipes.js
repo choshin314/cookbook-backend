@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const fileUpload = require('express-fileupload');
 const {convertToSlug} = require('../helpers');
 const db = require('../config/database')
 const { 
@@ -106,7 +105,7 @@ router.get('/:recipeId', async (req, res, next) => {
             [sequelize.fn('COUNT', sequelize.col('likedBy.username')), 'likeCount']
         ],
         include: [
-            { model: User, attributes: ['username', 'profilePic', 'firstName', 'lastName']},
+            { model: User, attributes: ['id', 'username', 'profilePic', 'firstName', 'lastName']},
             { model: User, as: 'likedBy' },
             { model: Review, as: 'reviews' },
             { model: Ingredient, as: 'ingredients', order: ['position','ASC'] },
@@ -124,6 +123,8 @@ router.get('/:recipeId', async (req, res, next) => {
         ]
     })
         .then(recipe => {
+            recipe.dataValues.user = recipe.dataValues.User;
+            delete recipe.dataValues.User;
             if (!recipe) throw new Error('Recipe was not found')
             res.json({ data: recipe })
         })
@@ -196,13 +197,13 @@ router.get('/bookmarks/:username', async (req, res, next) => {
 
 //-------------------CREATE RECIPE --------------------//
 router.use(verifyAuth);
-router.post('/', fileUpload({useTempFiles: true}), async (req, res, next) => {
+router.post('/', upload.single('coverImg'), async (req, res, next) => {
     if (!req.user.userId) return next(new HttpError('Not authorized', 401));
     let { 
         title, introText: intro, cookTime, prepTime, servings, instructions, tags, ingredients 
     } = JSON.parse(req.body.formJSON);
     try {
-        let coverImg = await uploadPic(req.files.coverImg.tempFilePath);
+        let coverImg = await uploadPic(req.file);
         const recipe = await Recipe.create({
             title,
             intro,
