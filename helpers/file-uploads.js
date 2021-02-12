@@ -14,4 +14,11 @@ async function uploadPic(filepath, next) {
     }
 }
 
-module.exports = uploadPic;
+async function deletePic(fileURL) {
+    const splitURL = fileURL.split('/');
+    const filename = splitURL[splitURL.length - 1];
+    const publicID = filename.split('.')[0];
+    return await cloudinary.uploader.destroy(publicID)
+}
+
+module.exports = { uploadPic, deletePic };
