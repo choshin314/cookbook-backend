@@ -17,7 +17,7 @@ const verifyAuth = require('../middleware/verifyAuth');
 const validateImg = require('../middleware/validateImg');
 const multer = require('multer');
 const upload = multer({ dest: '../uploads/'});
-const uploadPic = require('../helpers/file-uploads');
+const { uploadPic, deletePic } = require('../helpers/file-uploads');
 const HttpError = require('../helpers/http-error')
 
 router.get('/', async (req, res) => {
@@ -204,7 +204,7 @@ router.post('/', upload.single('coverImg'), async (req, res, next) => {
         title, intro, cookTime, prepTime, servings, instructions, tags, ingredients 
     } = JSON.parse(req.body.formJSON);
     try {
-        let coverImg = await uploadPic(req.file);
+        let coverImg = await uploadPic(req.file.path);
         const recipe = await Recipe.create({
             title,
             intro,
@@ -225,10 +225,10 @@ router.post('/', upload.single('coverImg'), async (req, res, next) => {
     }
 })
 
-async function updateById(model, id, newValues) {
-    const newValueKeys = Object.keys(newValues);
+async function updateById(model, id, newValuesObj) {
+    const newValueKeys = Object.keys(newValuesObj);
     try {
-        await model.update(newValues, { where: { id: id } });
+        await model.update(newValuesObj, { where: { id: id } });
         const updatedVals = await model.findByPk(id, { attributes: [ ...newValueKeys ] });
         return { data: updatedVals }
     } catch(err) {
@@ -237,60 +237,51 @@ async function updateById(model, id, newValues) {
 }
 //-------------------UPDATE RECIPE --------------------//
 router.patch('/:recipeId/cover-img', upload.single('coverImg'), validateImg(5120000), async (req, res, next) => {
-    //if req.file, find the existing coverImg URL and save that for deletion at the end
-        //upload the new photo and get the URL
-        //find Recipe with recipeId
-        //update the recipe with new photo URL
-        //delete the old pic from Cloudinary  
-        //return the new photo url 
-    //if !req.file, req.body
-
-    res.json(req.body);
+    const recipeId = parseInt(req.params.recipeId);
+    try {
+        const newCoverImgUrl = await uploadPic(req.file.path);
+        const oldCoverImgUrl = await Recipe.findByPk(recipeId, { attributes: ['coverImg']});
+        const result = await updateById(Recipe, recipeId, { coverImg: newCoverImgUrl });
+        if (result.error) {
+            console.log(result.error)
+            return next(new HttpError('Uh oh, something went wrong. Please try again later'));
+        }
+        const deletion = await deletePic(oldCoverImgUrl.dataValues.coverImg);
+        if (!deletion.result === 'ok') console.log(deletion);
+        res.json(result)
+    } catch (err) {
+        console.log(err.message);
+        next (new HttpError());
+    }
 })
 
 router.patch('/:recipeId/general', async (req, res, next) => {
     const recipeId = parseInt(req.params.recipeId);
     const result = await updateById(Recipe, recipeId, req.body);
-    if (result.error) return next(new HttpError('result.error', 400));
+    if (result.error) {
+        console.log(result.error)
+        return next(new HttpError('Uh oh, something went wrong. Please try again later'));
+    }
     res.json(result);
 })
 
 router.patch('/:recipeId/tags', async (req, res, next) => {
     console.log('file: ', req.file)
     console.log('body ', req.body);
-    //if req.file, find the existing coverImg URL and save that for deletion at the end
-        //upload the new photo and get the URL
-        //find Recipe with recipeId
-        //update the recipe with new photo URL
-        //delete the old pic from Cloudinary  
-        //return the new photo url 
-    //if !req.file, req.body 
     res.json(req.body);
 })
 
 router.patch('/:recipeId/ingredients', async (req, res, next) => {
     console.log('file: ', req.file)
     console.log('body ', req.body);
-    //if req.file, find the existing coverImg URL and save that for deletion at the end
-        //upload the new photo and get the URL
-        //find Recipe with recipeId
-        //update the recipe with new photo URL
-        //delete the old pic from Cloudinary  
-        //return the new photo url 
-    //if !req.file, req.body 
+
     res.json(req.body);
 })
 
 router.patch('/:recipeId/instructions', async (req, res, next) => {
     console.log('file: ', req.file)
     console.log('body ', req.body);
-    //if req.file, find the existing coverImg URL and save that for deletion at the end
-        //upload the new photo and get the URL
-        //find Recipe with recipeId
-        //update the recipe with new photo URL
-        //delete the old pic from Cloudinary  
-        //return the new photo url 
-    //if !req.file, req.body 
+
     res.json(req.body);
 })
 
