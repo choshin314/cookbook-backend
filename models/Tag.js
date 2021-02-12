@@ -3,10 +3,10 @@ const { DataTypes } = require('sequelize');
 module.exports = function(sequelize) {
     const Tag = sequelize.define('Tag', {
         content: {
-            type: DataTypes.STRING(16),
+            type: DataTypes.STRING(20),
             allowNull: false,
             validate: {
-                is: /^[a-zA-Z0-9_]*$/,
+                is: /^[a-zA-Z0-9-]*$/,
                 notNull: true,
                 len: [3, 20]
             }

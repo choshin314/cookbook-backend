@@ -9,10 +9,6 @@ const HttpError = require('../helpers/http-error');
 const uploadPic = require('../helpers/file-uploads');
 const verifyAuth = require('../middleware/verifyAuth');
 
-const maxAge = 60*60*24;
-
-
-
 
 router.get('/:username', async (req, res, next) => {
     try {
@@ -58,6 +54,50 @@ router.get('/:username/stats', async (req, res, next) => {
         return next(new HttpError('Could not find stats', 404))
     }
 })
+
+//-------------Get a given user's Followers/Following---------------//
+
+router.get('/:username/followers', async (req, res, next) => {
+    const username = req.params.username;
+
+    try {
+        const user = await User.findOne({ 
+            attributes: ['username'],
+            include: [
+                { model: User, as: 'followers', attributes: [
+                    'username', 'id', 'firstName', 'lastName', 'profilePic'
+                ] }
+            ],
+            where: { username: username }
+        });
+        const followers = user.followers;
+        res.json({ data: followers })
+    } catch(err) {
+        console.log(err.message);
+        return next(new HttpError('Could not find followers', 404))
+    }
+})
+
+router.get('/:username/following', async (req, res, next) => {
+    const username = req.params.username;
+    try {
+        const user = await User.findOne({ 
+            attributes: ['username'],
+            include: [
+                { model: User, as: 'following', attributes: [
+                    'username', 'id', 'firstName', 'lastName', 'profilePic'
+                ] }
+            ],
+            where: { username: username }
+        });
+        const following = user.following;
+        res.json({ data: following })
+    } catch(err) {
+        console.log(err.message);
+        return next(new HttpError('Could not find following', 404))
+    }
+})
+
 
 
 router.get('/:userId/info', async (req, res) => {
