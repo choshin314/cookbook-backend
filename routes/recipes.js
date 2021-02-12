@@ -14,6 +14,7 @@ const {
     rawConfig, sequelize, Sequelize: {Op} 
 } = db;
 const verifyAuth = require('../middleware/verifyAuth');
+const validateImg = require('../middleware/validateImg');
 const multer = require('multer');
 const upload = multer({ dest: '../uploads/'});
 const uploadPic = require('../helpers/file-uploads');
@@ -198,9 +199,9 @@ router.get('/bookmarks/:username', async (req, res, next) => {
 //-------------------CREATE RECIPE --------------------//
 router.use(verifyAuth);
 router.post('/', upload.single('coverImg'), async (req, res, next) => {
-    if (!req.user.userId) return next(new HttpError('Not authorized', 401));
+    // if (!req.user.userId) return next(new HttpError('Not authorized', 401));
     let { 
-        title, introText: intro, cookTime, prepTime, servings, instructions, tags, ingredients 
+        title, intro, cookTime, prepTime, servings, instructions, tags, ingredients 
     } = JSON.parse(req.body.formJSON);
     try {
         let coverImg = await uploadPic(req.file);
@@ -222,6 +223,75 @@ router.post('/', upload.single('coverImg'), async (req, res, next) => {
         console.log(err.message);
         return next(new HttpError('Could not create recipe. Please try again later', 400))
     }
+})
+
+async function updateById(model, id, newValues) {
+    const newValueKeys = Object.keys(newValues);
+    try {
+        await model.update(newValues, { where: { id: id } });
+        const updatedVals = await model.findByPk(id, { attributes: [ ...newValueKeys ] });
+        return { data: updatedVals }
+    } catch(err) {
+        return { error: err.message }
+    }
+}
+//-------------------UPDATE RECIPE --------------------//
+router.patch('/:recipeId/cover-img', upload.single('coverImg'), validateImg(5120000), async (req, res, next) => {
+    //if req.file, find the existing coverImg URL and save that for deletion at the end
+        //upload the new photo and get the URL
+        //find Recipe with recipeId
+        //update the recipe with new photo URL
+        //delete the old pic from Cloudinary  
+        //return the new photo url 
+    //if !req.file, req.body
+
+    res.json(req.body);
+})
+
+router.patch('/:recipeId/general', async (req, res, next) => {
+    const recipeId = parseInt(req.params.recipeId);
+    const result = await updateById(Recipe, recipeId, req.body);
+    if (result.error) return next(new HttpError('result.error', 400));
+    res.json(result);
+})
+
+router.patch('/:recipeId/tags', async (req, res, next) => {
+    console.log('file: ', req.file)
+    console.log('body ', req.body);
+    //if req.file, find the existing coverImg URL and save that for deletion at the end
+        //upload the new photo and get the URL
+        //find Recipe with recipeId
+        //update the recipe with new photo URL
+        //delete the old pic from Cloudinary  
+        //return the new photo url 
+    //if !req.file, req.body 
+    res.json(req.body);
+})
+
+router.patch('/:recipeId/ingredients', async (req, res, next) => {
+    console.log('file: ', req.file)
+    console.log('body ', req.body);
+    //if req.file, find the existing coverImg URL and save that for deletion at the end
+        //upload the new photo and get the URL
+        //find Recipe with recipeId
+        //update the recipe with new photo URL
+        //delete the old pic from Cloudinary  
+        //return the new photo url 
+    //if !req.file, req.body 
+    res.json(req.body);
+})
+
+router.patch('/:recipeId/instructions', async (req, res, next) => {
+    console.log('file: ', req.file)
+    console.log('body ', req.body);
+    //if req.file, find the existing coverImg URL and save that for deletion at the end
+        //upload the new photo and get the URL
+        //find Recipe with recipeId
+        //update the recipe with new photo URL
+        //delete the old pic from Cloudinary  
+        //return the new photo url 
+    //if !req.file, req.body 
+    res.json(req.body);
 })
 
 module.exports = router;

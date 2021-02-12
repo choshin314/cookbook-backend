@@ -11,7 +11,7 @@ function verifyAuth(req, res, next) {
         next();
     } catch (err) {
         console.log('jwt auth error: ', err.message);
-        return res.status(401).json({ message: 'Not authorized to access' });
+        next(new HttpError('Not authorized', 401))
     }
 }
 
