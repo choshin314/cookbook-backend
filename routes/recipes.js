@@ -246,7 +246,7 @@ router.patch('/:recipeId/cover-img', upload.single('coverImg'), validateImg(5120
             console.log(result.error)
             return next(new HttpError('Uh oh, something went wrong. Please try again later'));
         }
-        const deletion = await deletePic(oldCoverImgUrl.dataValues.coverImg);
+        const deletion = await deletePic(oldCoverImgUrl.coverImg);
         if (!deletion.result === 'ok') console.log(deletion);
         res.json(result)
     } catch (err) {
@@ -272,10 +272,51 @@ router.patch('/:recipeId/tags', async (req, res, next) => {
 })
 
 router.patch('/:recipeId/ingredients', async (req, res, next) => {
-    console.log('file: ', req.file)
-    console.log('body ', req.body);
+    const recipeId = parseInt(req.params.recipeId);
+    const incomingIngs = req.body.ingredients;
 
-    res.json(req.body);
+    try {
+        const existingIngs = await Ingredient.findAll({ 
+            order: [['id', 'ASC']], 
+            where: { recipe_id: recipeId } 
+        })
+        const updatedIngs = [];
+
+        for (let i = 0; i < incomingIngs.length; i++) {
+            let finalItem;
+            let incoming = incomingIngs[i];
+            if (typeof incoming.id === "string") {
+                delete incoming.id;
+                finalItem = await Ingredient.create({
+                    ...incoming,
+                    position: i,
+                    recipe_id: recipeId
+                })
+            } else {
+                await updateById(Ingredient, incoming.id, {
+                    ...incoming,
+                    position: i
+                });
+                finalItem = await Ingredient.findByPk(incoming.id);
+            }
+            updatedIngs.push(finalItem);
+        }
+        const updatesSortedById = [...updatedIngs].sort((a, b) => a.id - b.id);
+        let u = 0;
+
+        for (let i = 0; i < existingIngs.length; i++) {
+            if (existingIngs[i].id !== updatesSortedById[u].id) {
+                await Ingredient.destroy({ where: { id: existingIngs[i].id }});
+                continue;
+            } 
+            u++;
+        }
+        res.json(updatedIngs)
+
+    } catch (err) {
+        console.log(err.message);
+        next(new HttpError(err.message))
+    }
 })
 
 router.patch('/:recipeId/instructions', async (req, res, next) => {
