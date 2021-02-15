@@ -10,6 +10,17 @@ module.exports = function(sequelize){
                 max: 5
             }
         },
+        headline: {
+            type: DataTypes.STRING(50),
+            allowNull: true,
+            validate: {
+                len: [0, 50]
+            }
+        },
+        reviewImg: {
+            type: DataTypes.TEXT,
+            allowNull: true
+        },
         content: {
             type: DataTypes.TEXT,
             allowNull: true
