@@ -18,6 +18,7 @@ const validateImg = require('../middleware/validateImg');
 const multer = require('multer');
 const upload = multer({ dest: '../uploads/'});
 const { uploadPic, deletePic } = require('../helpers/file-uploads');
+const { updateById, updateRecipeList } = require('../helpers/query-helpers');
 const HttpError = require('../helpers/http-error')
 
 router.get('/', async (req, res) => {
@@ -109,8 +110,13 @@ router.get('/:recipeId', async (req, res, next) => {
             { model: User, attributes: ['id', 'username', 'profilePic', 'firstName', 'lastName']},
             { model: User, as: 'likedBy' },
             { model: Review, as: 'reviews' },
-            { model: Ingredient, as: 'ingredients', order: ['position','ASC'] },
-            { model: Instruction, as: 'instructions', order: ['position','ASC']  }
+            { model: Ingredient, as: 'ingredients' },
+            { model: Instruction, as: 'instructions' },
+            { model: Tag, as: 'tags' }
+        ],
+        order: [
+            [{ model: Ingredient, as: 'ingredients' }, 'position','ASC'], 
+            [{ model: Instruction, as: 'instructions' }, 'position','ASC']
         ],
         group: [
             'Recipe.id', 
@@ -120,7 +126,8 @@ router.get('/:recipeId', async (req, res, next) => {
             "likedBy->Like.recipe_id", 
             "likedBy->Like.user_id",
             'ingredients.id',
-            'instructions.id'
+            'instructions.id',
+            'tags.id'
         ]
     })
         .then(recipe => {
@@ -225,35 +232,8 @@ router.post('/', upload.single('coverImg'), async (req, res, next) => {
     }
 })
 
-async function updateById(model, id, newValuesObj) {
-    const newValueKeys = Object.keys(newValuesObj);
-    try {
-        await model.update(newValuesObj, { where: { id: id } });
-        const updatedVals = await model.findByPk(id, { attributes: [ ...newValueKeys ] });
-        return { data: updatedVals }
-    } catch(err) {
-        return { error: err.message }
-    }
-}
+
 //-------------------UPDATE RECIPE --------------------//
-router.patch('/:recipeId/cover-img', upload.single('coverImg'), validateImg(5120000), async (req, res, next) => {
-    const recipeId = parseInt(req.params.recipeId);
-    try {
-        const newCoverImgUrl = await uploadPic(req.file.path);
-        const oldCoverImgUrl = await Recipe.findByPk(recipeId, { attributes: ['coverImg']});
-        const result = await updateById(Recipe, recipeId, { coverImg: newCoverImgUrl });
-        if (result.error) {
-            console.log(result.error)
-            return next(new HttpError('Uh oh, something went wrong. Please try again later'));
-        }
-        const deletion = await deletePic(oldCoverImgUrl.coverImg);
-        if (!deletion.result === 'ok') console.log(deletion);
-        res.json(result)
-    } catch (err) {
-        console.log(err.message);
-        next (new HttpError());
-    }
-})
 
 router.patch('/:recipeId/general', async (req, res, next) => {
     const recipeId = parseInt(req.params.recipeId);
@@ -262,57 +242,57 @@ router.patch('/:recipeId/general', async (req, res, next) => {
         console.log(result.error)
         return next(new HttpError('Uh oh, something went wrong. Please try again later'));
     }
-    res.json(result);
+    res.json({ data: result.data });
+})
+
+router.patch('/:recipeId/cover-img', upload.single('coverImg'), validateImg(5120000), async (req, res, next) => {
+    const recipeId = parseInt(req.params.recipeId);
+    try {
+        const newCoverImgUrl = await uploadPic(req.file.path);
+        const oldCoverImgUrl = await Recipe.findByPk(recipeId, { attributes: ['coverImg']});
+        const result = await updateById(Recipe, recipeId, { coverImg: newCoverImgUrl });
+        if (result.error) throw new Error('Uh oh, something went wrong');
+        const deletion = await deletePic(oldCoverImgUrl.coverImg);
+        if (!deletion.result === 'ok') console.log(deletion);
+        res.json({ data: result.data });
+    } catch (err) {
+        console.log(err.message);
+        next (new HttpError(err.message));
+    }
 })
 
 router.patch('/:recipeId/tags', async (req, res, next) => {
-    console.log('file: ', req.file)
-    console.log('body ', req.body);
-    res.json(req.body);
+    const recipeId = parseInt(req.params.recipeId);
+    const incoming = req.body.tags;
+
+    try {
+        const existing = await Tag.findAll({
+            order: [['id', 'ASC']],
+            where: { recipe_id: recipeId }
+        })
+        const tags = await sequelize.transaction(async (t) => (
+            await updateRecipeList(Tag, recipeId, incoming, existing, { transaction: t }, true)
+        ))
+        res.json({ data: { tags} });
+    } catch(err) {
+        console.log(err.message);
+        next (new HttpError(err.message))
+    }
 })
 
 router.patch('/:recipeId/ingredients', async (req, res, next) => {
     const recipeId = parseInt(req.params.recipeId);
-    const incomingIngs = req.body.ingredients;
+    const incoming = req.body.ingredients;
 
     try {
-        const existingIngs = await Ingredient.findAll({ 
+        const existing = await Ingredient.findAll({ 
             order: [['id', 'ASC']], 
             where: { recipe_id: recipeId } 
         })
-        const updatedIngs = [];
-
-        for (let i = 0; i < incomingIngs.length; i++) {
-            let finalItem;
-            let incoming = incomingIngs[i];
-            if (typeof incoming.id === "string") {
-                delete incoming.id;
-                finalItem = await Ingredient.create({
-                    ...incoming,
-                    position: i,
-                    recipe_id: recipeId
-                })
-            } else {
-                await updateById(Ingredient, incoming.id, {
-                    ...incoming,
-                    position: i
-                });
-                finalItem = await Ingredient.findByPk(incoming.id);
-            }
-            updatedIngs.push(finalItem);
-        }
-        const updatesSortedById = [...updatedIngs].sort((a, b) => a.id - b.id);
-        let u = 0;
-
-        for (let i = 0; i < existingIngs.length; i++) {
-            if (existingIngs[i].id !== updatesSortedById[u].id) {
-                await Ingredient.destroy({ where: { id: existingIngs[i].id }});
-                continue;
-            } 
-            u++;
-        }
-        res.json(updatedIngs)
-
+        const ingredients = await sequelize.transaction(async (t) => (
+            await updateRecipeList(Ingredient, recipeId, incoming, existing, { transaction: t })
+        ))
+        res.json({ data: { ingredients } })
     } catch (err) {
         console.log(err.message);
         next(new HttpError(err.message))
@@ -320,10 +300,22 @@ router.patch('/:recipeId/ingredients', async (req, res, next) => {
 })
 
 router.patch('/:recipeId/instructions', async (req, res, next) => {
-    console.log('file: ', req.file)
-    console.log('body ', req.body);
+    const recipeId = parseInt(req.params.recipeId);
+    const incoming = req.body.instructions;
 
-    res.json(req.body);
+    try {
+        const existing = await Instruction.findAll({ 
+            order: [['id', 'ASC']], 
+            where: { recipe_id: recipeId } 
+        })
+        const instructions = await sequelize.transaction(async (t) => (
+            await updateRecipeList(Instruction, recipeId, incoming, existing, { transaction: t })
+        ))
+        res.json({ data: { instructions } })
+    } catch (err) {
+        console.log(err.message);
+        next(new HttpError(err.message))
+    }
 })
 
 module.exports = router;
