@@ -68,6 +68,7 @@ function Recipe(sequelize) {
                 type: DataTypes.UUID,
                 allowNull: false
             },
+            as: 'user',
             onDelete: 'CASCADE'
         });
         Recipe.belongsToMany(models.User, {

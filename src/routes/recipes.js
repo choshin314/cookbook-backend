@@ -107,9 +107,11 @@ router.get('/:recipeId', async (req, res, next) => {
             [sequelize.fn('COUNT', sequelize.col('likedBy.username')), 'likeCount']
         ],
         include: [
-            { model: User, attributes: ['id', 'username', 'profilePic', 'firstName', 'lastName']},
+            { model: User, as: 'user', attributes: ['id', 'username', 'profilePic', 'firstName', 'lastName']},
             { model: User, as: 'likedBy' },
-            { model: Review, as: 'reviews' },
+            { model: Review, as: 'reviews', include: [
+                { model: User, as: 'user', attributes: ['username', 'profilePic']}
+            ]},
             { model: Ingredient, as: 'ingredients' },
             { model: Instruction, as: 'instructions' },
             { model: Tag, as: 'tags' }
@@ -121,18 +123,19 @@ router.get('/:recipeId', async (req, res, next) => {
         group: [
             'Recipe.id', 
             'reviews.id', 
-            'User.id', 
+            'user.id', 
             'likedBy.id', 
             "likedBy->Like.recipe_id", 
             "likedBy->Like.user_id",
             'ingredients.id',
             'instructions.id',
-            'tags.id'
+            'tags.id',
+            'reviews->user.id'
         ]
     })
         .then(recipe => {
-            recipe.dataValues.user = recipe.dataValues.User;
-            delete recipe.dataValues.User;
+            // recipe.dataValues.user = recipe.dataValues.User;
+            // delete recipe.dataValues.User;
             if (!recipe) throw new Error('Recipe was not found')
             res.json({ data: recipe })
         })

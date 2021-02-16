@@ -52,6 +52,7 @@ module.exports = function(sequelize){
                 type: DataTypes.UUID,
                 allowNull: false
             },
+            as: 'user',
             onDelete: 'CASCADE'
         });
     }
