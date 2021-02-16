@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const recipeRoutes = require('./routes/recipes');
 const socialRoutes = require('./routes/social');
+const reviewRoutes = require('./routes/reviews');
 
 //-------------DB--------------//
 db.sequelize.authenticate()
@@ -24,6 +25,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/social', socialRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 //-------------ERROR HANDLING--------------//
 app.use((err, req, res, next) => {
