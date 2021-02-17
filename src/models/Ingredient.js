@@ -41,12 +41,11 @@ module.exports = function(sequelize) {
 
     Ingredient.associate = function(models) {
         Ingredient.belongsTo(models.Recipe, {
-            foreignKey: 'recipe_id',
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            validate: {
-                notNull: true,
-                isInt: true
+            foreignKey: {
+                name: 'recipeId',
+                field: 'recipe_id',
+                type: DataTypes.INTEGER,
+                allowNull: false
             }
         });
     }

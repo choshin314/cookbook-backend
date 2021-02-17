@@ -19,7 +19,7 @@ async function updateRecipeList(model, recipeId, incomingList, existingItems, tr
             delete incomingItem.id;
             finalItem = await model.create({
                 ...incomingItem,
-                recipe_id: recipeId,
+                recipeId: recipeId,
                 ...position
             }, transaction)
         } else {

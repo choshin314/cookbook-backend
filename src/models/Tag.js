@@ -20,7 +20,8 @@ module.exports = function(sequelize) {
     Tag.associate = function (models) {
         Tag.belongsTo(models.Recipe, {
             foreignKey: {
-                name: 'recipe_id',
+                name: 'recipeId',
+                field: 'recipe_id',
                 type: DataTypes.INTEGER,
                 allowNull: false
             },

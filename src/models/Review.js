@@ -37,7 +37,8 @@ module.exports = function(sequelize){
     Review.associate = function(models) {
         Review.belongsTo(models.Recipe, {
             foreignKey: {
-                name: 'recipe_id',
+                name: 'recipeId',
+                field: 'recipe_id',
                 type: DataTypes.INTEGER,
                 allowNull: false,
                 validate: {
@@ -48,7 +49,8 @@ module.exports = function(sequelize){
         
         Review.belongsTo(models.User, {
             foreignKey: {
-                name: 'user_id',
+                name: 'userId',
+                field: 'user_id',
                 type: DataTypes.UUID,
                 allowNull: false
             },

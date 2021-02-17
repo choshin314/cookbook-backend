@@ -64,7 +64,8 @@ function Recipe(sequelize) {
     Recipe.associate = function(models) {
         Recipe.belongsTo(models.User, {
             foreignKey: {
-                name: 'user_id',
+                name: 'userId',
+                field: 'user_id',
                 type: DataTypes.UUID,
                 allowNull: false
             },

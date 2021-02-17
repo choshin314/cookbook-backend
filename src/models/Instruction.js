@@ -26,12 +26,11 @@ module.exports = function(sequelize) {
 
     Instruction.associate = function(models) {
         Instruction.belongsTo(models.Recipe, {
-            foreignKey: 'recipe_id',
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            validate: {
-                notNull: true,
-                isInt: true
+            foreignKey: {
+                name: 'recipeId',
+                field: 'recipe_id',
+                type: DataTypes.INTEGER,
+                allowNull: false
             }
         })
     }

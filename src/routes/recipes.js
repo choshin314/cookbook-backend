@@ -109,9 +109,12 @@ router.get('/:recipeId', async (req, res, next) => {
         include: [
             { model: User, as: 'user', attributes: ['id', 'username', 'profilePic', 'firstName', 'lastName']},
             { model: User, as: 'likedBy' },
-            { model: Review, as: 'reviews', include: [
-                { model: User, as: 'user', attributes: ['username', 'profilePic']}
-            ]},
+            { 
+                model: Review, 
+                as: 'reviews', 
+                attributes: ['content', 'updated_at', 'headline', 'id', 'rating', 'recipeId', 'reviewImg'], 
+                include: [{ model: User, as: 'user', attributes: ['username', 'profilePic']}]
+            },
             { model: Ingredient, as: 'ingredients' },
             { model: Instruction, as: 'instructions' },
             { model: Tag, as: 'tags' }
@@ -226,7 +229,7 @@ router.post('/', upload.single('coverImg'), async (req, res, next) => {
             tags: tags.map(tag => ({ content: tag.content })),
             instructions: instructions.map((ins, i) => ({ content: ins.content, position: i })),
             ingredients: ingredients.map((ing, i) => ({ content: ing.content, qty: ing.qty, unit: ing.unit, position: i })),
-            user_id: req.user.userId,
+            userId: req.user.userId,
         }, { include: [ {model: Tag, as: 'tags'}, {model: Ingredient, as: "ingredients"}, {model: Instruction, as: "instructions"} ]})
         res.status(201).json({ data: recipe })
     } catch(err) {
@@ -271,7 +274,7 @@ router.patch('/:recipeId/tags', async (req, res, next) => {
     try {
         const existing = await Tag.findAll({
             order: [['id', 'ASC']],
-            where: { recipe_id: recipeId }
+            where: { recipeId }
         })
         const tags = await sequelize.transaction(async (t) => (
             await updateRecipeList(Tag, recipeId, incoming, existing, { transaction: t }, true)
@@ -290,7 +293,7 @@ router.patch('/:recipeId/ingredients', async (req, res, next) => {
     try {
         const existing = await Ingredient.findAll({ 
             order: [['id', 'ASC']], 
-            where: { recipe_id: recipeId } 
+            where: { recipeId } 
         })
         const ingredients = await sequelize.transaction(async (t) => (
             await updateRecipeList(Ingredient, recipeId, incoming, existing, { transaction: t })
@@ -309,7 +312,7 @@ router.patch('/:recipeId/instructions', async (req, res, next) => {
     try {
         const existing = await Instruction.findAll({ 
             order: [['id', 'ASC']], 
-            where: { recipe_id: recipeId } 
+            where: { recipeId } 
         })
         const instructions = await sequelize.transaction(async (t) => (
             await updateRecipeList(Instruction, recipeId, incoming, existing, { transaction: t })

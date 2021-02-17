@@ -26,11 +26,6 @@ router.post('/', upload.single('reviewImg'), async (req, res, next) => {
         const reviewImg = req.file ? await uploadPic(req.file.path) : null;
         const newReview = { reviewImg, headline, rating, content, recipe_id, user_id };
         await Review.create(newReview);
-        // const reviews = await Review.findAll({ 
-        //     where: { recipe_id }, 
-        //     order: [['created_at', 'DESC']],
-        //     include: [{ model: User, as: 'user', attributes: ['username', 'profilePic']}]
-        // });
         const updates = await Recipe.findByPk(recipe_id, {
             attributes: [
                 [sequelize.fn('COUNT', sequelize.col('reviews.id')), 'reviewCount'],
