@@ -17,8 +17,7 @@ router.get('/bookmarks', async (req, res, next) => {
         })
         res.status(200).json({data: bookmarkIds});
     } catch (err) {
-        console.log(err.message);
-        return next(new HttpError('Could not retrieve bookmarks', 404))
+        return next(err);
     }
 })
 
@@ -29,8 +28,7 @@ router.post('/bookmarks', async (req, res, next) => {
         const newBookmark = await Bookmark.create({ user_id: userId, recipe_id: recipeId});
         res.json({ data: { id: newBookmark.recipe_id }})
     } catch(err) {
-        console.log(err.message);
-        return next(new HttpError('Could not add bookmark', 500))
+        return next(err);
     }
 })
 
@@ -44,8 +42,7 @@ router.delete('/bookmarks/:recipeId', async (req, res, next) => {
         }});
         res.json({ data: { id: recipeId } })
     } catch(err) {
-        console.log(err.message);
-        return next(new HttpError('Could not remove bookmark', 500))
+        return next(err);
     }
 })
 
@@ -60,8 +57,7 @@ router.get('/followers', async (req, res, next) => {
         })
         res.status(200).json({ data: followerIds });
     } catch(err) {
-        console.log(err.message);
-        return next(new HttpError('Could not retrieve followers', 404))
+        return next(err);
     }
 })
 
@@ -75,8 +71,7 @@ router.get('/following', async (req, res, next) => {
         })
         res.status(200).json({ data: followeeIds });
     } catch(err) {
-        console.log(err.message);
-        return next(new HttpError('Could not retrieve followees', 404))
+        return next(err);
     }
 })
 
@@ -88,8 +83,7 @@ router.post('/following', async (req, res, next) => {
         console.log(newFollowee);
         res.json({ data: { id: newFollowee.followee_id }})
     } catch(err) {
-        console.log(err.message);
-        return next(new HttpError('Could not add follow', 500))
+        return next(err);
     }
 })
 
@@ -102,8 +96,7 @@ router.delete('/following/:followeeId', async (req, res, next) => {
         }});
         res.json({ data: { id: followeeId } })
     } catch(err) {
-        console.log(err.message);
-        return next(new HttpError('Could not remove follow', 500))
+        return next(err);
     }
 })
 
@@ -118,8 +111,7 @@ router.get('/likes', async (req, res, next) => {
         })
         res.status(200).json({ data: likes });
     } catch(err) {
-        console.log(err.message);
-        return next(new HttpError('Could not retrieve likes', 404))
+        return next(err);
     }
 })
 

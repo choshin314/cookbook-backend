@@ -91,8 +91,7 @@ router.get('/feed/public', async (req, res, next) => {
         }))
         res.json({ data: formattedRecipes })
     } catch (err) {
-        console.log(err.message)
-        return next(new HttpError('Could not retrieve recipes', 500))
+        return next(err)
     }
 })
 
@@ -139,10 +138,10 @@ router.get('/:recipeId', async (req, res, next) => {
         .then(recipe => {
             // recipe.dataValues.user = recipe.dataValues.User;
             // delete recipe.dataValues.User;
-            if (!recipe) throw new Error('Recipe was not found')
+            if (!recipe) throw new HttpError('Recipe was not found')
             res.json({ data: recipe })
         })
-        .catch(err => next(new HttpError(err.message, 404)))
+        .catch(err => next(err))
 })
 
 
@@ -172,8 +171,7 @@ router.get('/user/:username', async (req, res, next) => {
         `, rawConfig(Recipe))
         res.status(200).json({ data: recipes })
     } catch (err) {
-        console.log(err.message);
-        return next(new HttpError('Could not retrieve recipes', 500))
+        return next(err)
     }
 })
 
@@ -204,8 +202,7 @@ router.get('/bookmarks/:username', async (req, res, next) => {
         `, rawConfig(Recipe))
         res.status(200).json({ data: bookmarks });
     } catch (err) {
-        console.log(err.message);
-        return next(new HttpError('Could not retrieve recipes', 400))
+        return next(err)
     }
 })
 
@@ -233,7 +230,6 @@ router.post('/', upload.single('coverImg'), async (req, res, next) => {
         }, { include: [ {model: Tag, as: 'tags'}, {model: Ingredient, as: "ingredients"}, {model: Instruction, as: "instructions"} ]})
         res.status(201).json({ data: recipe })
     } catch(err) {
-        console.log(err.message);
         return next(new HttpError('Could not create recipe. Please try again later', 400))
     }
 })
@@ -243,12 +239,13 @@ router.post('/', upload.single('coverImg'), async (req, res, next) => {
 
 router.patch('/:recipeId/general', async (req, res, next) => {
     const recipeId = parseInt(req.params.recipeId);
-    const result = await updateById(Recipe, recipeId, req.body);
-    if (result.error) {
-        console.log(result.error)
-        return next(new HttpError('Uh oh, something went wrong. Please try again later'));
+    try {
+        const result = await updateById(Recipe, recipeId, req.body);
+        if (result.error) throw new Error(result.error);
+        res.json({ data: result.data });
+    } catch (err) {
+        return next(err);
     }
-    res.json({ data: result.data });
 })
 
 router.patch('/:recipeId/cover-img', upload.single('coverImg'), validateImg(5120000), async (req, res, next) => {
@@ -257,13 +254,12 @@ router.patch('/:recipeId/cover-img', upload.single('coverImg'), validateImg(5120
         const newCoverImgUrl = await uploadPic(req.file.path);
         const oldCoverImgUrl = await Recipe.findByPk(recipeId, { attributes: ['coverImg']});
         const result = await updateById(Recipe, recipeId, { coverImg: newCoverImgUrl });
-        if (result.error) throw new Error('Uh oh, something went wrong');
+        if (result.error) throw new Error(result.error);
         const deletion = await deletePic(oldCoverImgUrl.coverImg);
         if (!deletion.result === 'ok') console.log(deletion);
         res.json({ data: result.data });
     } catch (err) {
-        console.log(err.message);
-        next (new HttpError(err.message));
+        return next(err);
     }
 })
 
@@ -281,8 +277,7 @@ router.patch('/:recipeId/tags', async (req, res, next) => {
         ))
         res.json({ data: { tags} });
     } catch(err) {
-        console.log(err.message);
-        next (new HttpError(err.message))
+        return next(err);
     }
 })
 
@@ -300,8 +295,7 @@ router.patch('/:recipeId/ingredients', async (req, res, next) => {
         ))
         res.json({ data: { ingredients } })
     } catch (err) {
-        console.log(err.message);
-        next(new HttpError(err.message))
+        return next(err);
     }
 })
 
@@ -319,8 +313,7 @@ router.patch('/:recipeId/instructions', async (req, res, next) => {
         ))
         res.json({ data: { instructions } })
     } catch (err) {
-        console.log(err.message);
-        next(new HttpError(err.message))
+        return next(err);
     }
 })
 

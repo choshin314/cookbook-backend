@@ -9,6 +9,7 @@ const userRoutes = require('./routes/users');
 const recipeRoutes = require('./routes/recipes');
 const socialRoutes = require('./routes/social');
 const reviewRoutes = require('./routes/reviews');
+const HttpError = require('./helpers/http-error');
 
 //-------------DB--------------//
 db.sequelize.authenticate()
@@ -29,9 +30,8 @@ app.use('/api/reviews', reviewRoutes);
 
 //-------------ERROR HANDLING--------------//
 app.use((err, req, res, next) => {
-    console.log(err);
-    res.status(err.code || 500);
-    res.json({ error: err.message || 'An unknown error occurred!' })
+    console.log(err.message);
+    HttpError(err, res);
 })
 
 app.listen(process.env.PORT || 5001, () => {

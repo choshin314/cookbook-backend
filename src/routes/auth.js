@@ -8,17 +8,14 @@ const HttpError = require('../helpers/http-error');
 const { createAccessToken } = require('../helpers/jwt-helpers');
 const verifyAuth = require('../middleware/verifyAuth');
 
-
 router.post('/register', async (req, res, next) => {
     const newUserDraft = req.body;
     const existingUser = await User.findOne({ where: { email: newUserDraft.email }});
-    if(existingUser) return next(new HttpError('User already exists', 400));
-
+    if(existingUser) throw new Error('User already exists');
     bcrypt.hash(newUserDraft.password, 10, (err, hash) => {
         if(hash) newUserDraft.password = hash;
         if(err) return next(new HttpError('Could not register account', 500));
     });
-
     try {
         const newUser = await User.create(newUserDraft);
         const accessToken = await createAccessToken(newUser.id);
@@ -44,19 +41,13 @@ router.post('/register', async (req, res, next) => {
 
 router.post('/login', async (req, res, next) => {
     const { emailUsername, password } = req.body;
-    let user;
     try {
-        user = await User.findOne({ 
+        const user = await User.findOne({ 
             where: { [Op.or]: [
                 { username: emailUsername }, 
                 { email: emailUsername } 
             ]}});
         if (!user) throw new Error('User does not exist')
-    } catch (err) {
-        console.log(err.message)
-        return next(new HttpError(err.message, 404))
-    }
-    try {
         const match = await bcrypt.compare(password, user.password);
         if (!match) throw new Error('Password does not match'); 
         const accessToken = await createAccessToken(user.id);

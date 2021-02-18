@@ -22,10 +22,11 @@ router.get('/:username', async (req, res, next) => {
             ],
             where: { username: req.params.username }
         })
+        if (!user) throw new HttpError('Could not find resource', 404)
         res.json({ data: user })
     } catch(err) {
         console.log(err.message);
-        return next(new HttpError('Could not find user', 404))
+        return next(err);
     }
 })
 
@@ -43,7 +44,7 @@ router.get('/:username/stats', async (req, res, next) => {
             ],
             where: { username: username }
         });
-        
+        if (!user) throw new HttpError('Could not find resource', 404);
         stats.recipeCount = user.userRecipes.length;
         stats.followerCount = user.followers.length;
         stats.followingCount = user.following.length;
@@ -51,7 +52,7 @@ router.get('/:username/stats', async (req, res, next) => {
         res.json({ data: stats })
     } catch(err) {
         console.log(err.message);
-        return next(new HttpError('Could not find stats', 404))
+        return next(err);
     }
 })
 
@@ -70,11 +71,12 @@ router.get('/:username/followers', async (req, res, next) => {
             ],
             where: { username: username }
         });
+        if (!user) throw new HttpError('Could not find resource', 404);
         const followers = user.followers;
         res.json({ data: followers })
     } catch(err) {
         console.log(err.message);
-        return next(new HttpError('Could not find followers', 404))
+        return next(err);
     }
 })
 
@@ -90,11 +92,12 @@ router.get('/:username/following', async (req, res, next) => {
             ],
             where: { username: username }
         });
+        if (!user) throw new HttpError('Could not find resource', 404);
         const following = user.following;
         res.json({ data: following })
     } catch(err) {
         console.log(err.message);
-        return next(new HttpError('Could not find following', 404))
+        return next(err);
     }
 })
 

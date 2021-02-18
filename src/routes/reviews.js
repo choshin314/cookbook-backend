@@ -35,9 +35,7 @@ router.post('/', upload.single('reviewImg'), async (req, res, next) => {
         })
         res.json({ data: updates }); //sends back { data: { reviews: [...] }} 
     } catch (err) {
-        console.log(err)
-        if (err.code) return next(err); 
-        return next(new HttpError('Could not create review', 500));
+        return next(err);
     }
 })
 
@@ -53,9 +51,7 @@ router.patch('/:reviewId', upload.single('reviewImg'), async (req, res, next) =>
         if (editResult.error) throw new Error(editResult.error);
         res.json({ data: editResult.data }) //sends back { data: { edited properties }}
     } catch (err) {
-        console.log(err)
-        if (err.code) return next(err); 
-        return next(new HttpError('Could not edit review', 500));
+        return next(err);
     }
 })
 
@@ -69,9 +65,7 @@ router.delete('/:reviewId', async (req, res, next) => {
         await userOwnedReview.destroy();
         res.json({ data: userOwnedReview }) //sends back { data: { edited properties }}
     } catch (err) {
-        console.log(err)
-        if (err.code) return next(err); 
-        return next(new HttpError('Could not edit review', 500));
+        return next(err);
     }
 })
 
