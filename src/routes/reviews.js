@@ -12,19 +12,21 @@ const multer = require('multer');
 const upload = multer({ dest: '../uploads/'});
 const validatePic = require('../middleware/validateImg');
 const { uploadPic, deletePic } = require('../helpers/file-uploads');
-const HttpError = require('../helpers/http-error')
+const HttpError = require('../helpers/http-error');
+const { updateById } = require('../helpers/query-helpers');
 
 
 router.use(verifyAuth);
 router.post('/', upload.single('reviewImg'), async (req, res, next) => {
-    const { userId: user_id } = req.user;
+    //client sends all non-file fields in one stringified form field called 'formJSON'
+    const newReview = { userId: req.user.userId, ...JSON.parse(req.body.formJSON) };
     try {
-        //client sends all non-file fields in one stringified form field called 'formJSON'
-        const { headline, recipeId: recipe_id, content, rating } = JSON.parse(req.body.formJSON);
-        const reviewExists = await Review.findOne({ where: { user_id, recipe_id }});
+        const reviewExists = await Review.findOne({ where: { userId: newReview.userId, recipeId: newReview.recipeId }});
         if (reviewExists) throw new HttpError('Review already exists', 400);
+
         const reviewImg = req.file ? await uploadPic(req.file.path) : null;
-        const newReview = { reviewImg, headline, rating, content, recipe_id, user_id };
+        newReview.reviewImg = reviewImg;
+
         await Review.create(newReview);
         const updates = await Recipe.findByPk(recipe_id, {
             attributes: [
@@ -42,6 +44,24 @@ router.post('/', upload.single('reviewImg'), async (req, res, next) => {
         console.log(err)
         if (err.code) return next(err); 
         return next(new HttpError('Could not create review', 500));
+    }
+})
+
+router.patch('/:reviewId', upload.single('reviewImg'), async (req, res, next) => {
+    const reviewId = parseInt(req.params.reviewId);
+    try {
+        const edits = { userId: req.user.userId, ...JSON.parse(req.body.formJSON) };
+        if (req.file) {
+            const reviewImg = await uploadPic(req.file.path);
+            edits.reviewImg = reviewImg; //only add reviewImg if there's actually a new img
+        }
+        const editResult = await updateById(Review, reviewId, edits);
+        if (editResult.error) throw new Error(editResult.error);
+        res.json({ data: editResult.data }) //sends back { data: { edited properties }}
+    } catch (err) {
+        console.log(err)
+        if (err.code) return next(err); 
+        return next(new HttpError('Could not edit review', 500));
     }
 })
 
