@@ -1,12 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../config/database')
-const { 
-    User, 
-    Review, 
-    Recipe, 
-    rawConfig, sequelize, Sequelize: {Op} 
-} = db;
+const { User, Review, Recipe } = require('../config/database')
 const verifyAuth = require('../middleware/verifyAuth');
 const multer = require('multer');
 const upload = multer({ dest: '../uploads/'});
@@ -65,39 +59,20 @@ router.patch('/:reviewId', upload.single('reviewImg'), async (req, res, next) =>
     }
 })
 
-module.exports = router;
+router.delete('/:reviewId', async (req, res, next) => {
+    const reviewId = parseInt(req.params.reviewId);
+    const userId = req.user.userId; 
+    
+    try {
+        const userOwnedReview = await Review.findOne({ where: { userId, id: reviewId }})
+        if (!userOwnedReview) throw new HttpError('User not authorized to delete this review', 403)
+        await userOwnedReview.destroy();
+        res.json({ data: userOwnedReview }) //sends back { data: { edited properties }}
+    } catch (err) {
+        console.log(err)
+        if (err.code) return next(err); 
+        return next(new HttpError('Could not edit review', 500));
+    }
+})
 
-// Recipe.findByPk(req.params.recipeId, { 
-//     attributes: [
-//         'id','title','slug','coverImg','intro','servings','prepTime','cookTime',
-//         [sequelize.fn('COUNT', sequelize.col('reviews.id')), 'reviewCount'],
-//         [sequelize.fn('AVG', sequelize.col('reviews.rating')), 'avgRating'],
-//         [sequelize.fn('COUNT', sequelize.col('likedBy.username')), 'likeCount']
-//     ],
-//     include: [
-//         { model: User, as: 'user', attributes: ['id', 'username', 'profilePic', 'firstName', 'lastName']},
-//         { model: User, as: 'likedBy' },
-//         { model: Review, as: 'reviews', include: [
-//             { model: User, as: 'user', attributes: ['username', 'profilePic']}
-//         ]},
-//         { model: Ingredient, as: 'ingredients' },
-//         { model: Instruction, as: 'instructions' },
-//         { model: Tag, as: 'tags' }
-//     ],
-//     order: [
-//         [{ model: Ingredient, as: 'ingredients' }, 'position','ASC'], 
-//         [{ model: Instruction, as: 'instructions' }, 'position','ASC']
-//     ],
-//     group: [
-//         'Recipe.id', 
-//         'reviews.id', 
-//         'user.id', 
-//         'likedBy.id', 
-//         "likedBy->Like.recipe_id", 
-//         "likedBy->Like.user_id",
-//         'ingredients.id',
-//         'instructions.id',
-//         'tags.id',
-//         'reviews->user.id'
-//     ]
-// })
+module.exports = router;
