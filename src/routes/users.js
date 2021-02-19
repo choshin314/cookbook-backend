@@ -9,17 +9,10 @@ const HttpError = require('../helpers/http-error');
 const uploadPic = require('../helpers/file-uploads');
 const verifyAuth = require('../middleware/verifyAuth');
 
-
 router.get('/:username', async (req, res, next) => {
     try {
         const user = await User.findOne({ 
             attributes: ['username', 'id', 'firstName', 'lastName', 'profilePic', 'bio'],
-            include: [
-                { model: Recipe, as: 'userRecipes' }, 
-                { model: Recipe, as: 'bookmarkedRecipes' },
-                { model: User, as: 'followers', attributes: ['username'] }, 
-                { model: User, as: 'following', attributes: ['username'] }
-            ],
             where: { username: req.params.username }
         })
         if (!user) throw new HttpError('Could not find resource', 404)
@@ -99,16 +92,6 @@ router.get('/:username/following', async (req, res, next) => {
         console.log(err.message);
         return next(err);
     }
-})
-
-
-
-router.get('/:userId/info', async (req, res) => {
-    res.send(req.params.userId)
-})
-
-router.get('/:userId/info', async (req, res) => {
-    res.send(req.params.userId)
 })
 
 module.exports = router;

@@ -31,7 +31,7 @@ app.use('/api/reviews', reviewRoutes);
 //-------------ERROR HANDLING--------------//
 app.use((err, req, res, next) => {
     console.log(err.message);
-    HttpError(err, res);
+    HttpError.handleError(err, res);
 })
 
 app.listen(process.env.PORT || 5001, () => {
