@@ -94,4 +94,24 @@ router.get('/:username/following', async (req, res, next) => {
     }
 })
 
+//----------PROTECTED--------------//
+router.use(verifyAuth)
+
+router.patch('/account/password', async (req, res, next) => {
+    const userId = req.user.userId;
+    const { oldPassword, password } = req.body;
+
+    try {
+        const user = await User.findByPk(userId);
+        if (!user) throw new Error('User does not exist')
+        const match = await bcrypt.compare(oldPassword, user.password);
+        if (!match) throw new HttpError('Current password does not match', 400); 
+        const newHash = await bcrypt.hash(password, 10);
+        await user.update({ password: newHash });
+        res.json({data: 'success'})
+    } catch (err) {
+        return next(err)
+    }
+})
+
 module.exports = router;
