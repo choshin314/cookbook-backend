@@ -3,20 +3,34 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 
 const db = require('../config/database');
-const { User, Sequelize: { Op } } = db;
+const { User, sequelize, Sequelize: { Op } } = db;
 const HttpError = require('../helpers/http-error');
 const { createAccessToken } = require('../helpers/jwt-helpers');
 const verifyAuth = require('../middleware/verifyAuth');
 
 router.post('/register', async (req, res, next) => {
     const newUserDraft = req.body;
-    const existingUser = await User.findOne({ where: { email: newUserDraft.email }});
-    if(existingUser) throw new Error('User already exists');
-    bcrypt.hash(newUserDraft.password, 10, (err, hash) => {
-        if(hash) newUserDraft.password = hash;
-        if(err) return next(new HttpError('Could not register account', 500));
-    });
+    const emailTaken = await User.findOne({ 
+        where: sequelize.where(
+            sequelize.fn('lower', sequelize.col('email')),
+            sequelize.fn('lower', newUserDraft.email)
+        )
+    })
+    if (emailTaken) throw new HttpError('Account already exists', 400)
+
+    const usernameTaken = await User.findOne({
+        where: sequelize.where(
+            sequelize.fn('lower', sequelize.col('username')),
+            sequelize.fn('lower', newUserDraft.username)
+        )
+    })
+    if (usernameTaken) throw new HttpError('This username is unavailable', 400);
+
     try {
+        bcrypt.hash(newUserDraft.password, 10, (err, hash) => {
+            if(hash) newUserDraft.password = hash;
+            if(err) throw new Error('failed to hash pw');
+        });
         const newUser = await User.create(newUserDraft);
         const accessToken = await createAccessToken(newUser.id);
         res.status(201).json({ data:
@@ -44,8 +58,14 @@ router.post('/login', async (req, res, next) => {
     try {
         const user = await User.findOne({ 
             where: { [Op.or]: [
-                { username: emailUsername }, 
-                { email: emailUsername } 
+                sequelize.where(
+                    sequelize.fn('lower', sequelize.col('username')),
+                    sequelize.fn('lower', emailUsername)
+                ), 
+                sequelize.where(
+                    sequelize.fn('lower', sequelize.col('email')),
+                    sequelize.fn('lower', emailUsername)
+                ) 
             ]}});
         if (!user) throw new Error('User does not exist')
         const match = await bcrypt.compare(password, user.password);
