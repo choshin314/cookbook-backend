@@ -10,27 +10,28 @@ const verifyAuth = require('../middleware/verifyAuth');
 
 router.post('/register', async (req, res, next) => {
     const newUserDraft = req.body;
-    const emailTaken = await User.findOne({ 
-        where: sequelize.where(
-            sequelize.fn('lower', sequelize.col('email')),
-            sequelize.fn('lower', newUserDraft.email)
-        )
-    })
-    if (emailTaken) throw new HttpError('Account already exists', 400)
-
-    const usernameTaken = await User.findOne({
-        where: sequelize.where(
-            sequelize.fn('lower', sequelize.col('username')),
-            sequelize.fn('lower', newUserDraft.username)
-        )
-    })
-    if (usernameTaken) throw new HttpError('This username is unavailable', 400);
-
     try {
-        bcrypt.hash(newUserDraft.password, 10, (err, hash) => {
-            if(hash) newUserDraft.password = hash;
-            if(err) throw new Error('failed to hash pw');
-        });
+        const emailTaken = await User.findOne({ 
+            where: sequelize.where(
+                sequelize.fn('lower', sequelize.col('email')),
+                sequelize.fn('lower', newUserDraft.email)
+            )
+        })
+        if (emailTaken) throw new HttpError('Account already exists', 400)
+        const usernameTaken = await User.findOne({
+            where: sequelize.where(
+                sequelize.fn('lower', sequelize.col('username')),
+                sequelize.fn('lower', newUserDraft.username)
+            )
+        })
+        if (usernameTaken) throw new HttpError('This username is unavailable', 400);
+    } catch (err) {
+        return next(err);
+    }
+    
+    try {
+        const hash = await bcrypt.hash(newUserDraft.password, 10);
+        newUserDraft.password = hash;
         const newUser = await User.create(newUserDraft);
         const accessToken = await createAccessToken(newUser.id);
         res.status(201).json({ data:

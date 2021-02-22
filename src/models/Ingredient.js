@@ -1,6 +1,4 @@
-const { DataTypes } = require('sequelize');
-
-module.exports = function(sequelize) {
+module.exports = function(sequelize, DataTypes) {
     const Ingredient = sequelize.define('Ingredient', {
         qty: {
             type: DataTypes.REAL,

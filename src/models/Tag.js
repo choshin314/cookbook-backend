@@ -1,6 +1,4 @@
-const { DataTypes } = require('sequelize');
-
-module.exports = function(sequelize) {
+module.exports = function(sequelize, DataTypes) {
     const Tag = sequelize.define('Tag', {
         content: {
             type: DataTypes.STRING(20),

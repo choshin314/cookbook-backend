@@ -1,10 +1,7 @@
 const { DataTypes } = require('sequelize');
-const Recipe = require('./Recipe')
-const User = require('./User')
-
-module.exports = function(sequelize, models) {
-    return sequelize.define('Bookmark', {
-        recipe_id: {
+module.exports = function(sequelize, DataTypes) {
+    const Bookmark = sequelize.define('Bookmark', {
+        recipeId: {
             type: DataTypes.INTEGER,
             allowNull: false,
             validate: {
@@ -12,26 +9,41 @@ module.exports = function(sequelize, models) {
                 isInt: true
             },
             references: {
-                model: models.Recipe,
+                model: 'Recipe',
                 key: 'id'
             }
         },
-        user_id: {
+        userId: {
             type: DataTypes.UUID,
             allowNull: false,
             validate: {
                 notNull: true
             },
             references: {
-                model: models.User,
+                model: 'User',
                 key: 'id'
             }
         }
     }, { 
         tableName: 'bookmarks',
         underscored: true,
-        timestamps: true,
-        createdAt: 'created_at',
-        updatedAt: 'updated_at' 
+        timestamps: true
     })
+
+    Bookmark.associate = function(models) {
+        Bookmark.belongsTo(models.Recipe, {
+            foreignKey: {
+                name: 'recipeId',
+                field: 'recipe_id'
+            }
+        });
+        Bookmark.belongsTo(models.User, {
+            foreignKey: {
+                name: 'userId',
+                field: 'user_id'
+            }
+        })
+    }
+
+    return Bookmark
 }

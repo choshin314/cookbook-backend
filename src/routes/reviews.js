@@ -30,7 +30,7 @@ router.post('/', upload.single('reviewImg'), async (req, res, next) => {
             include: [{ model: Review, as: 'reviews', include: [
                 { model: User, as: 'user', attributes: ['username', 'profilePic']}
             ]}],
-            order: [[{ model: Review, as: 'reviews' }, 'created_at','DESC']],
+            order: [[{ model: Review, as: 'reviews' }, 'createdAt','DESC']],
             group: ['Recipe.id', 'reviews.id', 'reviews->user.id']
         })
         res.json({ data: updates }); //sends back { data: { reviews: [...] }} 

@@ -1,6 +1,4 @@
-const { Sequelize, DataTypes } = require('sequelize');
-
-module.exports = function(sequelize) {
+module.exports = function(sequelize, DataTypes, Sequelize) {
     const User = sequelize.define('User', {
         id: {
             type: DataTypes.UUID,
@@ -59,28 +57,43 @@ module.exports = function(sequelize) {
 
     User.associate = function(models) {
         User.hasMany(models.Recipe, {
-            foreignKey: 'user_id',
+            foreignKey: {
+                name: 'userId',
+                field: 'user_id'
+            },
             as: 'userRecipes'
         });
         User.hasMany(models.Review);
         User.belongsToMany(models.Recipe, {
             through: models.Bookmark,
-            foreignKey: 'user_id',
+            foreignKey: {
+                name: 'userId',
+                field: 'user_id'
+            },
             as: 'bookmarkedRecipes'
         });
         User.belongsToMany(models.Recipe, {
             through: models.Like,
-            foreignKey: 'user_id',
+            foreignKey: {
+                name: 'userId',
+                field: 'user_id'
+            },
             as: 'likedRecipes'
         });
-        User.belongsToMany(User, {
+        User.belongsToMany(models.User, {
             as: 'followers',
-            foreignKey: 'followee_id',
+            foreignKey: {
+                name: 'followeeId',
+                field: 'followee_id'
+            },
             through: models.Follow
         });    
-        User.belongsToMany(User, {
+        User.belongsToMany(models.User, {
             as: 'following',
-            foreignKey: 'follower_id',
+            foreignKey: {
+                name: 'followerId',
+                field: 'follower_id'
+            },
             through: models.Follow
         }); 
     }

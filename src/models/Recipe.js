@@ -1,8 +1,4 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
-
-
-function Recipe(sequelize) {
+function Recipe(sequelize, DataTypes) {
     const Recipe = sequelize.define('Recipe', {
         title: {
             type: DataTypes.STRING(50),
@@ -56,8 +52,6 @@ function Recipe(sequelize) {
     { 
         tableName: 'recipes',
         timestamps: true,
-        createdAt: 'created_at',
-        updatedAt: 'updated_at',
         underscored: true 
     });
 
@@ -74,18 +68,24 @@ function Recipe(sequelize) {
         });
         Recipe.belongsToMany(models.User, {
             through: models.Bookmark,
-            foreignKey: 'recipe_id',
+            foreignKey: {
+                name: 'recipeId',
+                field: 'recipe_id'
+            },
             as: 'bookmarkedBy'
         });
         Recipe.belongsToMany(models.User, {
             through: models.Like,
-            foreignKey: 'recipe_id',
+            foreignKey: {
+                name: 'recipeId',
+                field: 'recipe_id'
+            },
             as: 'likedBy'
         });
-        Recipe.hasMany(models.Tag, { as: 'tags', foreignKey: 'recipe_id' });
-        Recipe.hasMany(models.Review, { as: 'reviews', foreignKey: 'recipe_id'});
-        Recipe.hasMany(models.Ingredient, {as: 'ingredients', foreignKey: 'recipe_id'});
-        Recipe.hasMany(models.Instruction, {as: 'instructions', foreignKey: 'recipe_id'});
+        Recipe.hasMany(models.Tag, { as: 'tags'});
+        Recipe.hasMany(models.Review, { as: 'reviews'});
+        Recipe.hasMany(models.Ingredient, {as: 'ingredients'});
+        Recipe.hasMany(models.Instruction, {as: 'instructions'});
     }
     return Recipe;
 }

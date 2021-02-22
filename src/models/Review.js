@@ -1,6 +1,4 @@
-const { DataTypes } = require('sequelize');
-
-module.exports = function(sequelize){
+module.exports = function(sequelize, DataTypes){
     const Review = sequelize.define('Review', {
         rating: {
             type: DataTypes.SMALLINT,
@@ -29,8 +27,6 @@ module.exports = function(sequelize){
     { 
         tableName: 'reviews',
         timestamps: true,
-        createdAt: 'created_at',
-        updatedAt: 'updated_at',
         underscored: true 
     });
 

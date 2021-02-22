@@ -1,8 +1,6 @@
-const { DataTypes } = require('sequelize');
-
-module.exports = function(sequelize, models) {
-    return sequelize.define('Like', {
-        recipe_id: {
+module.exports = function(sequelize, DataTypes) {
+    const Like = sequelize.define('Like', {
+        recipeId: {
             type: DataTypes.INTEGER,
             allowNull: false,
             validate: {
@@ -10,26 +8,41 @@ module.exports = function(sequelize, models) {
                 isInt: true
             },
             references: {
-                model: models.Recipe,
+                model: 'Recipe',
                 key: 'id'
             }
         },
-        user_id: {
+        userId: {
             type: DataTypes.UUID,
             allowNull: false,
             validate: {
                 notNull: true
             },
             references: {
-                model: models.User,
+                model: 'User',
                 key: 'id'
             }
         }
     }, { 
         tableName: 'likes',
         underscored: true,
-        timestamps: true,
-        createdAt: 'created_at',
-        updatedAt: 'updated_at' 
+        timestamps: true
     })
+
+    Like.associate = function(models) {
+        Like.belongsTo(models.Recipe, {
+            foreignKey: {
+                name: 'recipeId',
+                field: 'recipe_id'
+            }
+        });
+        Like.belongsTo(models.User, {
+            foreignKey: {
+                name: 'userId',
+                field: 'user_id'
+            }
+        });  
+    }
+
+    return Like;
 }

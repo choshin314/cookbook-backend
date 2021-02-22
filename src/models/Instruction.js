@@ -1,6 +1,4 @@
-const { DataTypes } = require('sequelize');
-
-module.exports = function(sequelize) {
+module.exports = function(sequelize, DataTypes) {
     const Instruction = sequelize.define('Instruction', {
         content: {
             type: DataTypes.TEXT,

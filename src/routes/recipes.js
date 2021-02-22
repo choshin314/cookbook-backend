@@ -46,7 +46,7 @@ router.get('/feed/private', verifyAuth, async (req, res, next) => {
 
     console.log(user);
     const recipes = await Recipe.findAll({ 
-        where: { updated_at: { [Op.gt]: lastFetched }}
+        where: { updatedAt: { [Op.gt]: lastFetched }}
     })
     res.json(recipes)
 })
@@ -111,7 +111,7 @@ router.get('/:recipeId', async (req, res, next) => {
             { 
                 model: Review, 
                 as: 'reviews', 
-                attributes: ['content', 'updated_at', 'headline', 'id', 'rating', 'recipeId', 'reviewImg'], 
+                attributes: ['content', 'updatedAt', 'headline', 'id', 'rating', 'recipeId', 'reviewImg'], 
                 include: [{ model: User, as: 'user', attributes: ['username', 'profilePic']}]
             },
             { model: Ingredient, as: 'ingredients' },

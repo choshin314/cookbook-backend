@@ -1,31 +1,28 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
-
-module.exports = function(sequelize, models) {
-    return sequelize.define('Follow', {
-        follower_id: {
+module.exports = function(sequelize, DataTypes) {
+    const Follow = sequelize.define('Follow', {
+        followerId: {
             type: DataTypes.UUID,
             allowNull: false,
             validate: {
                 notNull: true
             },
             references: {
-                model: models.User,
+                model: "User",
                 key: 'id'
             }
         },
-        followee_id: {
+        followeeId: {
             type: DataTypes.UUID,
             allowNull: false,
             validate: {
                 notNull: true
             },
             references: {
-                model: models.User,
+                model: "User",
                 key: 'id'
             }
         },
-        followee_notified: {
+        followeeNotified: {
             type: DataTypes.BOOLEAN,
             allowNull: false,
             defaultValue: false
@@ -33,8 +30,23 @@ module.exports = function(sequelize, models) {
     }, { 
         tableName: 'follows',
         timestamps: true,
-        createdAt: 'created_at',
-        updatedAt: 'updated_at',
         underscored: true 
     })
+
+    Follow.associate = function(models) {
+        Follow.belongsTo(models.User, {
+            foreignKey: {
+                name: 'followerId',
+                field: 'follower_id'
+            }
+        });
+        Follow.belongsTo(models.User, {
+            foreignKey: {
+                name: 'followeeId',
+                field: 'followee_id'
+            }
+        })
+    }
+
+    return Follow
 }

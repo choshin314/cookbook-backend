@@ -1,4 +1,4 @@
-const Sequelize = require('sequelize');
+const { Sequelize, DataTypes } = require('sequelize');
 
 const sequelize = new Sequelize(process.env.DB, process.env.DB_USER, process.env.DB_PASS, {
     host: 'localhost',
@@ -6,17 +6,16 @@ const sequelize = new Sequelize(process.env.DB, process.env.DB_USER, process.env
 })
 
 const models = {
-    User: require('../models/User')(sequelize),
-    Recipe: require('../models/Recipe')(sequelize),
-    Ingredient: require('../models/Ingredient')(sequelize),
-    Instruction: require('../models/Instruction')(sequelize),
-    Review: require('../models/Review')(sequelize),
-    Tag: require('../models/Tag')(sequelize)
+    User: require('../models/User')(sequelize, DataTypes, Sequelize),
+    Recipe: require('../models/Recipe')(sequelize, DataTypes),
+    Ingredient: require('../models/Ingredient')(sequelize, DataTypes),
+    Instruction: require('../models/Instruction')(sequelize, DataTypes),
+    Review: require('../models/Review')(sequelize, DataTypes),
+    Tag: require('../models/Tag')(sequelize, DataTypes),
+    Bookmark: require('../models/Bookmark')(sequelize, DataTypes),
+    Follow: require('../models/Follow')(sequelize, DataTypes),
+    Like: require('../models/Like')(sequelize, DataTypes)
 }
-
-models.Bookmark = require('../models/Bookmark')(sequelize, models);
-models.Follow = require('../models/Follow')(sequelize, models);
-models.Like = require('../models/Like')(sequelize, models);
 
 for (let modelName in models) {
     if (models[modelName].associate) {
