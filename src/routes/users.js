@@ -1,13 +1,16 @@
 const express = require('express');
 const router = express.Router();
-
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const upload = multer({ dest: '../uploads/'});
+
 const db = require('../config/database')
 const { User, Recipe, Review, Follow, sequelize } = db;
 const HttpError = require('../helpers/http-error');
-const uploadPic = require('../helpers/file-uploads');
+const { uploadPic, deletePic } = require('../helpers/file-uploads');
 const verifyAuth = require('../middleware/verifyAuth');
+const validateImg = require('../middleware/validateImg');
 
 router.get('/:username', async (req, res, next) => {
     try {
@@ -97,6 +100,38 @@ router.get('/:username/following', async (req, res, next) => {
 //----------PROTECTED--------------//
 router.use(verifyAuth)
 
+router.patch('/account/general', async (req, res, next) => {
+    const userId = req.user.userId;
+    const edits = req.body;
+    const { email, username, bio } = edits;
+    try {
+        const user = await User.findByPk(userId);
+        if (!user) throw new Error('User does not exist');
+        if (email) {
+            const emailTaken = await User.findOne({ 
+                where: sequelize.where(
+                    sequelize.fn('lower', sequelize.col('email')),
+                    sequelize.fn('lower', email)
+                )
+            })
+            if (emailTaken) throw new HttpError('This email address is unavailable', 400)
+        }
+        if (username) {
+            const usernameTaken = await User.findOne({
+                where: sequelize.where(
+                    sequelize.fn('lower', sequelize.col('username')),
+                    sequelize.fn('lower', username)
+                )
+            })
+            if (usernameTaken) throw new HttpError('This username is unavailable', 400)
+        }
+        await user.update(edits);
+        res.json({data: edits });
+    } catch (err) {
+        return next(err);
+    }
+})
+
 router.patch('/account/password', async (req, res, next) => {
     const userId = req.user.userId;
     const { oldPassword, password } = req.body;
@@ -109,6 +144,21 @@ router.patch('/account/password', async (req, res, next) => {
         const newHash = await bcrypt.hash(password, 10);
         await user.update({ password: newHash });
         res.json({data: 'success'})
+    } catch (err) {
+        return next(err)
+    }
+})
+
+router.patch('/account/profile-pic', upload.single('profilePic'), validateImg(512000), async (req, res, next) => {
+    const userId = req.user.userId;
+    try {
+        const user = await User.findByPk(userId);
+        if (!user) throw new Error('User does not exist');
+        const picToOverwrite = user.profilePic;
+        const newPic = await uploadPic(req.file.path);
+        await user.update({ profilePic: newPic });
+        if (picToOverwrite) await deletePic(picToOverwrite);
+        res.json({data: { profilePic: newPic }})
     } catch (err) {
         return next(err)
     }
