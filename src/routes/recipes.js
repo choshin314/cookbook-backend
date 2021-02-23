@@ -21,14 +21,212 @@ const { uploadPic, deletePic } = require('../helpers/file-uploads');
 const { updateById, updateRecipeList } = require('../helpers/query-helpers');
 const HttpError = require('../helpers/http-error')
 
-router.get('/', async (req, res) => {
-    const { search, sort } = req.query;
-    //if search, get all recipes where title or tags include search query
-    //if sort, sort by sort DESC
-    //default is return all recipes sorted by likes
+//-----------------SEARCH FOR RECIPES---------------------//
 
-    res.send(`Retrieving`)
+router.get('/', async (req, res, next) => {
+    let { q, filter } = req.query;
+    if (!q) return res.json({ data: [] })
+    q = q.trim();
+    try {
+        switch (filter) {
+            case "title":
+                results = await Recipe.findAll({ 
+                    where: { title: {[Op.iLike]: `%${q}%`} },
+                    attributes: {
+                        include: [
+                            [sequelize.fn('COUNT', sequelize.col('reviews.id')), 'reviewCount'],
+                            [sequelize.fn('AVG', sequelize.col('reviews.rating')), 'avgRating'],
+                            [sequelize.fn('COUNT', sequelize.col('likedBy.username')), 'likeCount']
+                        ]
+                    },
+                    include: [
+                        { model: User, as: 'user', attributes: ['id', 'username', 'profilePic', 'firstName', 'lastName']},
+                        { model: User, as: 'likedBy' },
+                        { 
+                            model: Review, 
+                            as: 'reviews', 
+                            attributes: ['id', 'rating', 'recipeId']
+                        },
+                        { model: Tag, as: 'tags' }
+                    ],
+                    order: [
+                        [sequelize.col('likeCount'), 'DESC'], 
+                        [sequelize.col('reviewCount'), 'DESC'], 
+                        ['title', 'ASC']
+                    ],
+                    group: [
+                        'Recipe.id', 
+                        'reviews.id', 
+                        'user.id', 
+                        'likedBy.id', 
+                        'likedBy->Like.recipe_id',
+                        'likedBy->Like.user_id',
+                        'tags.id'
+                    ]
+                })
+                break;
+            case "tags":
+                const formattedQuery = q.replace(/[^\w ]+/g,'').replace(/ +|_/g,'_');
+                let prelimResults = await Tag.findAll({
+                    where: sequelize.where(
+                        sequelize.fn('lower', sequelize.col('Tag.content')),
+                        sequelize.fn('lower', q)
+                    ),
+                    attributes: {
+                        include: [
+                            [sequelize.fn('COUNT', sequelize.col('recipe.reviews.id')), 'reviewCount'],
+                            [sequelize.fn('AVG', sequelize.col('recipe.reviews.rating')), 'avgRating'],
+                            [sequelize.fn('COUNT', sequelize.col('recipe.likedBy.username')), 'likeCount']
+                        ]
+                    },
+                    include: { 
+                        model: Recipe, 
+                        as: 'recipe', 
+                        include: [
+                            { model: User, as: 'user', attributes: ['id', 'username', 'profilePic', 'firstName', 'lastName']},
+                            { model: User, as: 'likedBy' },
+                            { 
+                                model: Review, 
+                                as: 'reviews', 
+                                attributes: ['id', 'rating', 'recipeId']
+                            },
+                            { model: Tag, as: 'tags' }
+                        ]
+                    },
+                    group: [
+                        'Tag.id',
+                        'recipe.id', 
+                        'recipe.reviews.id', 
+                        'recipe.user.id', 
+                        'recipe.likedBy.id', 
+                        'recipe.likedBy->Like.recipe_id',
+                        'recipe.likedBy->Like.user_id',
+                        'recipe.tags.id'
+                    ]
+                })
+                results = prelimResults.map(tagWithRecipe => tagWithRecipe.recipe)
+                break;
+            default:
+                results = []
+                break;
+        }
+        res.json({ data: results })
+    } catch (err) {
+        return next(err);
+    }
 })
+
+//----------GET RECIPE BY ID--------------//
+router.get('/:recipeId', async (req, res, next) => {
+    Recipe.findByPk(req.params.recipeId, { 
+        attributes: [
+            'id','title','slug','coverImg','intro','servings','prepTime','cookTime',
+            [sequelize.fn('COUNT', sequelize.col('reviews.id')), 'reviewCount'],
+            [sequelize.fn('AVG', sequelize.col('reviews.rating')), 'avgRating'],
+            [sequelize.fn('COUNT', sequelize.col('likedBy.username')), 'likeCount']
+        ],
+        include: [
+            { model: User, as: 'user', attributes: ['id', 'username', 'profilePic', 'firstName', 'lastName']},
+            { model: User, as: 'likedBy' },
+            { 
+                model: Review, 
+                as: 'reviews', 
+                attributes: ['content', 'updatedAt', 'headline', 'id', 'rating', 'recipeId', 'reviewImg'], 
+                include: [{ model: User, as: 'user', attributes: ['username', 'profilePic']}]
+            },
+            { model: Ingredient, as: 'ingredients' },
+            { model: Instruction, as: 'instructions' },
+            { model: Tag, as: 'tags' }
+        ],
+        order: [
+            [{ model: Ingredient, as: 'ingredients' }, 'position','ASC'], 
+            [{ model: Instruction, as: 'instructions' }, 'position','ASC']
+        ],
+        group: [
+            'Recipe.id', 
+            'reviews.id', 
+            'user.id', 
+            'likedBy.id', 
+            "likedBy->Like.recipeId", 
+            "likedBy->Like.userId",
+            'ingredients.id',
+            'instructions.id',
+            'tags.id',
+            'reviews->user.id'
+        ]
+    })
+        .then(recipe => {
+            // recipe.dataValues.user = recipe.dataValues.User;
+            // delete recipe.dataValues.User;
+            if (!recipe) throw new HttpError('Recipe was not found')
+            res.json({ data: recipe })
+        })
+        .catch(err => next(err))
+})
+
+
+//-----------GET RECIPES BY USER (UserRecipes & UserBookmarks)------------//
+router.get('/user/:username', async (req, res, next) => {
+    const username = req.params.username; 
+    if (!username) return next(new HttpError('Bad request', 400));
+    try {
+        const {id} = await User.findOne({ attributes: ['id'], where: { username: username } });
+        const recipes = await sequelize.query(`
+            SELECT 
+                recipes.*, 
+                count(reviews.*) "reviewCount", 
+                avg(reviews.rating) "avgRating", 
+                count(likes.*) "likeCount" ,
+                users.id "user.id", 
+                users.username "user.username", 
+                users.profile_pic "user.profilePic", 
+                users.first_name "user.firstName", 
+                users.last_name "user.lastName"
+            FROM recipes
+            INNER JOIN users ON recipes.user_id = users.id
+            LEFT JOIN reviews ON recipes.id = reviews.recipe_id
+            LEFT JOIN likes ON recipes.id = likes.recipe_id
+            WHERE recipes.user_id = '${id}'
+            GROUP BY recipes.id, users.id         
+        `, rawConfig(Recipe))
+        res.status(200).json({ data: recipes })
+    } catch (err) {
+        return next(err)
+    }
+})
+
+router.get('/bookmarks/:username', async (req, res, next) => {
+    const username = req.params.username; 
+    if (!username) return next(new HttpError('Bad request, need more info', 400));
+    try {
+        const {id} = await User.findOne({ attributes: ['id'], where: { username: username } });
+        const bookmarks = await sequelize.query(`
+            SELECT
+                bookmarks.recipe_id,    
+                recipes.*,
+                count(reviews.*) "reviewCount",
+                avg(reviews.rating) "avgRating",
+                count(likes.*) "likeCount",
+                users.id "user.id",
+                users.username "user.username", 
+                users.profile_pic "user.profilePic", 
+                users.first_name "user.firstName", 
+                users.last_name "user.lastName"
+            FROM bookmarks 
+            INNER JOIN recipes ON bookmarks.recipe_id = recipes.id 
+            INNER JOIN users ON recipes.user_id = users.id 
+            LEFT JOIN reviews ON bookmarks.recipe_id = reviews.recipe_id 
+            LEFT JOIN likes ON bookmarks.recipe_id = likes.recipe_id  
+            WHERE bookmarks.user_id = '${id}' 
+            GROUP BY recipes.id, users.id, bookmarks.recipe_id
+        `, rawConfig(Recipe))
+        res.status(200).json({ data: bookmarks });
+    } catch (err) {
+        return next(err)
+    }
+})
+
+//-----------------------FEEDS-----------------------------//
 
 router.get('/feed/private', verifyAuth, async (req, res, next) => {
     const lastFetched = new Date() - 1209600000
@@ -95,119 +293,10 @@ router.get('/feed/public', async (req, res, next) => {
     }
 })
 
-
-//----------GET RECIPE BY ID--------------//
-router.get('/:recipeId', async (req, res, next) => {
-    Recipe.findByPk(req.params.recipeId, { 
-        attributes: [
-            'id','title','slug','coverImg','intro','servings','prepTime','cookTime',
-            [sequelize.fn('COUNT', sequelize.col('reviews.id')), 'reviewCount'],
-            [sequelize.fn('AVG', sequelize.col('reviews.rating')), 'avgRating'],
-            [sequelize.fn('COUNT', sequelize.col('likedBy.username')), 'likeCount']
-        ],
-        include: [
-            { model: User, as: 'user', attributes: ['id', 'username', 'profilePic', 'firstName', 'lastName']},
-            { model: User, as: 'likedBy' },
-            { 
-                model: Review, 
-                as: 'reviews', 
-                attributes: ['content', 'updatedAt', 'headline', 'id', 'rating', 'recipeId', 'reviewImg'], 
-                include: [{ model: User, as: 'user', attributes: ['username', 'profilePic']}]
-            },
-            { model: Ingredient, as: 'ingredients' },
-            { model: Instruction, as: 'instructions' },
-            { model: Tag, as: 'tags' }
-        ],
-        order: [
-            [{ model: Ingredient, as: 'ingredients' }, 'position','ASC'], 
-            [{ model: Instruction, as: 'instructions' }, 'position','ASC']
-        ],
-        group: [
-            'Recipe.id', 
-            'reviews.id', 
-            'user.id', 
-            'likedBy.id', 
-            "likedBy->Like.recipe_id", 
-            "likedBy->Like.user_id",
-            'ingredients.id',
-            'instructions.id',
-            'tags.id',
-            'reviews->user.id'
-        ]
-    })
-        .then(recipe => {
-            // recipe.dataValues.user = recipe.dataValues.User;
-            // delete recipe.dataValues.User;
-            if (!recipe) throw new HttpError('Recipe was not found')
-            res.json({ data: recipe })
-        })
-        .catch(err => next(err))
-})
-
-
-//-----------GET RECIPE BY USER------------//
-router.get('/user/:username', async (req, res, next) => {
-    const username = req.params.username; 
-    if (!username) return next(new HttpError('Bad request', 400));
-    try {
-        const {id} = await User.findOne({ attributes: ['id'], where: { username: username } });
-        const recipes = await sequelize.query(`
-            SELECT 
-                recipes.*, 
-                count(reviews.*) "reviewCount", 
-                avg(reviews.rating) "avgRating", 
-                count(likes.*) "likeCount" ,
-                users.id "user.id", 
-                users.username "user.username", 
-                users.profile_pic "user.profilePic", 
-                users.first_name "user.firstName", 
-                users.last_name "user.lastName"
-            FROM recipes
-            INNER JOIN users ON recipes.user_id = users.id
-            LEFT JOIN reviews ON recipes.id = reviews.recipe_id
-            LEFT JOIN likes ON recipes.id = likes.recipe_id
-            WHERE recipes.user_id = '${id}'
-            GROUP BY recipes.id, users.id         
-        `, rawConfig(Recipe))
-        res.status(200).json({ data: recipes })
-    } catch (err) {
-        return next(err)
-    }
-})
-
-router.get('/bookmarks/:username', async (req, res, next) => {
-    const username = req.params.username; 
-    if (!username) return next(new HttpError('Bad request, need more info', 400));
-    try {
-        const {id} = await User.findOne({ attributes: ['id'], where: { username: username } });
-        const bookmarks = await sequelize.query(`
-            SELECT
-                bookmarks.recipe_id,    
-                recipes.*,
-                count(reviews.*) "reviewCount",
-                avg(reviews.rating) "avgRating",
-                count(likes.*) "likeCount",
-                users.id "user.id",
-                users.username "user.username", 
-                users.profile_pic "user.profilePic", 
-                users.first_name "user.firstName", 
-                users.last_name "user.lastName"
-            FROM bookmarks 
-            INNER JOIN recipes ON bookmarks.recipe_id = recipes.id 
-            INNER JOIN users ON recipes.user_id = users.id 
-            LEFT JOIN reviews ON bookmarks.recipe_id = reviews.recipe_id 
-            LEFT JOIN likes ON bookmarks.recipe_id = likes.recipe_id  
-            WHERE bookmarks.user_id = '${id}' 
-            GROUP BY recipes.id, users.id, bookmarks.recipe_id
-        `, rawConfig(Recipe))
-        res.status(200).json({ data: bookmarks });
-    } catch (err) {
-        return next(err)
-    }
-})
+//--------------------PROTECTED ROUTES--------------------//
+router.use(verifyAuth);
 
 //-------------------CREATE RECIPE --------------------//
-router.use(verifyAuth);
 router.post('/', upload.single('coverImg'), async (req, res, next) => {
     // if (!req.user.userId) return next(new HttpError('Not authorized', 401));
     let { 
@@ -233,7 +322,6 @@ router.post('/', upload.single('coverImg'), async (req, res, next) => {
         return next(new HttpError('Could not create recipe. Please try again later', 400))
     }
 })
-
 
 //-------------------UPDATE RECIPE --------------------//
 

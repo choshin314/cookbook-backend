@@ -6,12 +6,70 @@ const multer = require('multer');
 const upload = multer({ dest: '../uploads/'});
 
 const db = require('../config/database')
-const { User, Recipe, Review, Follow, sequelize } = db;
+const { User, Recipe, Review, Follow, sequelize, Sequelize : {Op} } = db;
 const HttpError = require('../helpers/http-error');
 const { uploadPic, deletePic } = require('../helpers/file-uploads');
 const verifyAuth = require('../middleware/verifyAuth');
 const validateImg = require('../middleware/validateImg');
 
+//-----------------GET LIST OF USERS---------------------//
+
+router.get('/', async (req, res, next) => {
+    const { q, filter } = req.query;
+    //if !q, return nothing
+    if (!q) return res.json({ data: [] })
+    //if (!type || !['username','full','first','last'].includes(type)), search by username and full name 
+    try {
+        switch (filter) {
+            case "username":
+                results = await User.findAll({ 
+                    where: { username: {[Op.iLike]: `%${q}%`} },
+                    attributes: { exclude: ['password', 'createdAt', 'updatedAt' ] }
+                })
+                break;
+            case "first":
+                results = await User.findAll({ 
+                    where: { firstName: {[Op.iLike]: `%${q}%`} },
+                    attributes: { exclude: ['password', 'createdAt', 'updatedAt' ] }
+                })
+                break;
+            case "last":
+                results = await User.findAll({ 
+                    where: { lastName: {[Op.iLike]: `%${q}%`} },
+                    attributes: { exclude: ['password', 'createdAt', 'updatedAt' ] }
+                })
+                break;
+            case "full":
+                results = await User.findAll({
+                    where: {
+                        [Op.or]: [
+                            { firstName: {[Op.iLike]: `%${q}%`} },
+                            { lastName: {[Op.iLike]: `%${q}%`} }
+                        ]
+                    },
+                    attributes: { exclude: ['password', 'createdAt', 'updatedAt' ] }
+                })
+                break;
+            default:
+                results = await User.findAll({
+                    where: {
+                        [Op.or]: [
+                            { firstName: {[Op.iLike]: `%${q}%`} },
+                            { lastName: {[Op.iLike]: `%${q}%`} },
+                            { username: {[Op.iLike]: `%${q}%`} }
+                        ]
+                    },
+                    attributes: { exclude: ['password', 'createdAt', 'updatedAt' ] }
+                })
+                break;
+        }
+        res.json({ data: results })
+    } catch (err) {
+        return next(err);
+    }
+})
+
+//-------------GET SINGLE USER (i.e. Profile Page)---------------//
 router.get('/:username', async (req, res, next) => {
     try {
         const user = await User.findOne({ 
