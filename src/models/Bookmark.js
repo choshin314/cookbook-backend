@@ -35,13 +35,15 @@ module.exports = function(sequelize, DataTypes) {
             foreignKey: {
                 name: 'recipeId',
                 field: 'recipe_id'
-            }
+            },
+            as: 'recipe'
         });
         Bookmark.belongsTo(models.User, {
             foreignKey: {
                 name: 'userId',
                 field: 'user_id'
-            }
+            },
+            as: 'user'
         })
     }
 

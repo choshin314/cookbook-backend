@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router();
 const db = require('../config/database');
-const { Bookmark, Follow, Like, User, Recipe } = db;
+const { Bookmark, Follow, Like, User, Recipe, sequelize } = db;
 const verifyAuth = require('../middleware/verifyAuth')
 const HttpError = require('../helpers/http-error')
 
@@ -12,10 +12,12 @@ router.get('/bookmarks', async (req, res, next) => {
     try {
         const userId = req.user.userId
         const bookmarkIds = await Bookmark.findAll({
-            attributes: [[ 'recipeId', 'id' ]],
+            attributes: ['recipeId'],
             where: { userId: userId }
         })
-        res.status(200).json({data: bookmarkIds});
+        const idArray = bookmarkIds.map(bookmark => bookmark.recipeId)
+        console.log(idArray);
+        res.status(200).json({data: idArray});
     } catch (err) {
         return next(err);
     }
@@ -51,11 +53,12 @@ router.delete('/bookmarks/:recipeId', async (req, res, next) => {
 router.get('/followers', async (req, res, next) => {
     try {
         const userId = req.user.userId;
-        const followerIds = await Follow.findAll({
-            attributes: [[ 'followerId', 'id' ]],
+        const follows = await Follow.findAll({
+            attributes: ['followerId'],
             where: { followeeId: userId }
         })
-        res.status(200).json({ data: followerIds });
+        const idArray = follows.map(follow => follow.followerId);
+        res.status(200).json({data: idArray});
     } catch(err) {
         return next(err);
     }
@@ -65,11 +68,12 @@ router.get('/followers', async (req, res, next) => {
 router.get('/following', async (req, res, next) => {
     try {
         const userId = req.user.userId;
-        const followeeIds = await Follow.findAll({
-            attributes: [[ 'followeeId', 'id' ]],
+        const follows = await Follow.findAll({
+            attributes: ['followeeId'],
             where: { followerId: userId }
         })
-        res.status(200).json({ data: followeeIds });
+        const idArray = follows.map(follow => follow.followeeId);
+        res.status(200).json({data: idArray});
     } catch(err) {
         return next(err);
     }
@@ -106,10 +110,11 @@ router.get('/likes', async (req, res, next) => {
     try {
         const userId = req.user.userId;
         const likes = await Like.findAll({
-            attributes: [[ 'recipeId', 'id' ]],
+            attributes: ['recipeId' ],
             where: { userId: userId }
         })
-        res.status(200).json({ data: likes });
+        const idArray = likes.map(like => like.recipeId);
+        res.status(200).json({data: idArray});
     } catch(err) {
         return next(err);
     }

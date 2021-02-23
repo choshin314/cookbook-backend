@@ -38,13 +38,15 @@ module.exports = function(sequelize, DataTypes) {
             foreignKey: {
                 name: 'followerId',
                 field: 'follower_id'
-            }
+            },
+            as: 'follower'
         });
         Follow.belongsTo(models.User, {
             foreignKey: {
                 name: 'followeeId',
                 field: 'followee_id'
-            }
+            },
+            as: 'followee'
         })
     }
 
