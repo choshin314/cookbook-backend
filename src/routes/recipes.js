@@ -25,46 +25,10 @@ const HttpError = require('../helpers/http-error')
 
 router.get('/', async (req, res, next) => {
     let { q, filter } = req.query;
-    if (!q) return res.json({ data: [] })
+    if (!q) return res.json({ data: [] });
     q = q.trim();
     try {
         switch (filter) {
-            case "title":
-                results = await Recipe.findAll({ 
-                    where: { title: {[Op.iLike]: `%${q}%`} },
-                    attributes: {
-                        include: [
-                            [sequelize.fn('COUNT', sequelize.col('reviews.id')), 'reviewCount'],
-                            [sequelize.fn('AVG', sequelize.col('reviews.rating')), 'avgRating'],
-                            [sequelize.fn('COUNT', sequelize.col('likedBy.username')), 'likeCount']
-                        ]
-                    },
-                    include: [
-                        { model: User, as: 'user', attributes: ['id', 'username', 'profilePic', 'firstName', 'lastName']},
-                        { model: User, as: 'likedBy' },
-                        { 
-                            model: Review, 
-                            as: 'reviews', 
-                            attributes: ['id', 'rating', 'recipeId']
-                        },
-                        { model: Tag, as: 'tags' }
-                    ],
-                    order: [
-                        [sequelize.col('likeCount'), 'DESC'], 
-                        [sequelize.col('reviewCount'), 'DESC'], 
-                        ['title', 'ASC']
-                    ],
-                    group: [
-                        'Recipe.id', 
-                        'reviews.id', 
-                        'user.id', 
-                        'likedBy.id', 
-                        'likedBy->Like.recipe_id',
-                        'likedBy->Like.user_id',
-                        'tags.id'
-                    ]
-                })
-                break;
             case "tags":
                 const formattedQuery = q.replace(/[^\w ]+/g,'').replace(/ +|_/g,'_');
                 let prelimResults = await Tag.findAll({
@@ -106,9 +70,43 @@ router.get('/', async (req, res, next) => {
                 })
                 results = prelimResults.map(tagWithRecipe => tagWithRecipe.recipe)
                 break;
+
+            case "title":
             default:
-                results = []
-                break;
+                results = await Recipe.findAll({ 
+                    where: { title: {[Op.iLike]: `%${q}%`} },
+                    attributes: {
+                        include: [
+                            [sequelize.fn('COUNT', sequelize.col('reviews.id')), 'reviewCount'],
+                            [sequelize.fn('AVG', sequelize.col('reviews.rating')), 'avgRating'],
+                            [sequelize.fn('COUNT', sequelize.col('likedBy.username')), 'likeCount']
+                        ]
+                    },
+                    include: [
+                        { model: User, as: 'user', attributes: ['id', 'username', 'profilePic', 'firstName', 'lastName']},
+                        { model: User, as: 'likedBy' },
+                        { 
+                            model: Review, 
+                            as: 'reviews', 
+                            attributes: ['id', 'rating', 'recipeId']
+                        },
+                        { model: Tag, as: 'tags' }
+                    ],
+                    order: [
+                        [sequelize.col('likeCount'), 'DESC'], 
+                        [sequelize.col('reviewCount'), 'DESC'], 
+                        ['title', 'ASC']
+                    ],
+                    group: [
+                        'Recipe.id', 
+                        'reviews.id', 
+                        'user.id', 
+                        'likedBy.id', 
+                        'likedBy->Like.recipe_id',
+                        'likedBy->Like.user_id',
+                        'tags.id'
+                    ]
+                })
         }
         res.json({ data: results })
     } catch (err) {

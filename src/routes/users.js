@@ -15,10 +15,9 @@ const validateImg = require('../middleware/validateImg');
 //-----------------GET LIST OF USERS---------------------//
 
 router.get('/', async (req, res, next) => {
-    const { q, filter } = req.query;
-    //if !q, return nothing
-    if (!q) return res.json({ data: [] })
-    //if (!type || !['username','full','first','last'].includes(type)), search by username and full name 
+    let { q, filter } = req.query;
+    if (!q) return res.json({ data: [] });
+    q = q.trim();
     try {
         switch (filter) {
             case "username":
@@ -44,7 +43,10 @@ router.get('/', async (req, res, next) => {
                     where: {
                         [Op.or]: [
                             { firstName: {[Op.iLike]: `%${q}%`} },
-                            { lastName: {[Op.iLike]: `%${q}%`} }
+                            { lastName: {[Op.iLike]: `%${q}%`} },
+                            sequelize.where(sequelize.fn('concat', sequelize.col('first_name'), ' ', sequelize.col('last_name')), {
+                                [Op.iLike]: `%${q}%`
+                            })
                         ]
                     },
                     attributes: { exclude: ['password', 'createdAt', 'updatedAt' ] }
@@ -56,7 +58,10 @@ router.get('/', async (req, res, next) => {
                         [Op.or]: [
                             { firstName: {[Op.iLike]: `%${q}%`} },
                             { lastName: {[Op.iLike]: `%${q}%`} },
-                            { username: {[Op.iLike]: `%${q}%`} }
+                            { username: {[Op.iLike]: `%${q}%`} },
+                            sequelize.where(sequelize.fn('concat', sequelize.col('first_name'), ' ', sequelize.col('last_name')), {
+                                [Op.iLike]: `%${q}%`
+                            })
                         ]
                     },
                     attributes: { exclude: ['password', 'createdAt', 'updatedAt' ] }
