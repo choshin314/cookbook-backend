@@ -11,6 +11,7 @@ const {
     Recipe, 
     Instruction, 
     Follow, 
+    Like,
     rawConfig, sequelize, Sequelize: {Op} 
 } = db;
 const verifyAuth = require('../middleware/verifyAuth');
@@ -19,19 +20,22 @@ const multer = require('multer');
 const upload = multer({ dest: '../uploads/'});
 const { uploadPic, deletePic } = require('../helpers/file-uploads');
 const { updateById, updateRecipeList } = require('../helpers/query-helpers');
-const HttpError = require('../helpers/http-error')
+const HttpError = require('../helpers/http-error');
+const { SEARCH_LIMIT } = require('../constants');
 
 //-----------------SEARCH FOR RECIPES---------------------//
 
 router.get('/', async (req, res, next) => {
-    let { q, filter } = req.query;
-    if (!q) return res.json({ data: [] });
-    q = q.trim();
     try {
+        let { q, o, filter } = req.query;
+        let limitAndOffset = { subQuery: false, limit: SEARCH_LIMIT, offset: parseInt(o) || 0 };
+        if (!q) return res.json({ data: [] });
+        q = q.trim();
         switch (filter) {
             case "tags":
                 const formattedQuery = q.replace(/[^\w ]+/g,'').replace(/ +|_/g,'_');
                 let prelimResults = await Tag.findAll({
+                    ...limitAndOffset,
                     where: sequelize.where(
                         sequelize.fn('lower', sequelize.col('Tag.content')),
                         sequelize.fn('lower', q)
@@ -40,33 +44,37 @@ router.get('/', async (req, res, next) => {
                         include: [
                             [sequelize.fn('COUNT', sequelize.col('recipe.reviews.id')), 'reviewCount'],
                             [sequelize.fn('AVG', sequelize.col('recipe.reviews.rating')), 'avgRating'],
-                            [sequelize.fn('COUNT', sequelize.col('recipe.likedBy.username')), 'likeCount']
+                            [sequelize.fn('COUNT', sequelize.col('recipe.likes.recipe_id')), 'likeCount']
                         ]
                     },
                     include: { 
+                        duplicating: false,
                         model: Recipe, 
                         as: 'recipe', 
                         include: [
                             { model: User, as: 'user', attributes: ['id', 'username', 'profilePic', 'firstName', 'lastName']},
-                            { model: User, as: 'likedBy' },
                             { 
                                 model: Review, 
                                 as: 'reviews', 
                                 attributes: ['id', 'rating', 'recipeId']
                             },
-                            { model: Tag, as: 'tags' }
+                            { model: Like, as: 'likes' }
                         ]
                     },
                     group: [
                         'Tag.id',
                         'recipe.id', 
                         'recipe.reviews.id', 
-                        'recipe.user.id', 
-                        'recipe.likedBy.id', 
-                        'recipe.likedBy->Like.recipe_id',
-                        'recipe.likedBy->Like.user_id',
-                        'recipe.tags.id'
-                    ]
+                        'recipe.user.id',
+                        'recipe.likes.recipe_id',
+                        'recipe.likes.user_id'
+                    ],
+                    order: [
+                        [sequelize.col('reviewCount'), 'DESC'], 
+                        [sequelize.col('avgRating'), 'DESC'], 
+                        [sequelize.col('recipe.title'), 'ASC']
+                    ],
+                    
                 })
                 results = prelimResults.map(tagWithRecipe => tagWithRecipe.recipe)
                 break;
@@ -74,37 +82,35 @@ router.get('/', async (req, res, next) => {
             case "title":
             default:
                 results = await Recipe.findAll({ 
+                    ...limitAndOffset,
                     where: { title: {[Op.iLike]: `%${q}%`} },
                     attributes: {
                         include: [
                             [sequelize.fn('COUNT', sequelize.col('reviews.id')), 'reviewCount'],
                             [sequelize.fn('AVG', sequelize.col('reviews.rating')), 'avgRating'],
-                            [sequelize.fn('COUNT', sequelize.col('likedBy.username')), 'likeCount']
+                            [sequelize.fn('COUNT', sequelize.col('likes.recipe_id')), 'likeCount']
                         ]
                     },
                     include: [
                         { model: User, as: 'user', attributes: ['id', 'username', 'profilePic', 'firstName', 'lastName']},
-                        { model: User, as: 'likedBy' },
                         { 
                             model: Review, 
                             as: 'reviews', 
                             attributes: ['id', 'rating', 'recipeId']
                         },
-                        { model: Tag, as: 'tags' }
+                        { model: Like, as: 'likes' }
                     ],
                     order: [
-                        [sequelize.col('likeCount'), 'DESC'], 
                         [sequelize.col('reviewCount'), 'DESC'], 
+                        [sequelize.col('avgRating'), 'DESC'], 
                         ['title', 'ASC']
                     ],
                     group: [
                         'Recipe.id', 
                         'reviews.id', 
                         'user.id', 
-                        'likedBy.id', 
-                        'likedBy->Like.recipe_id',
-                        'likedBy->Like.user_id',
-                        'tags.id'
+                        'likes.recipe_id',
+                        'likes.user_id'
                     ]
                 })
         }

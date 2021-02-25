@@ -86,6 +86,7 @@ function Recipe(sequelize, DataTypes) {
         Recipe.hasMany(models.Review, { as: 'reviews'});
         Recipe.hasMany(models.Ingredient, {as: 'ingredients'});
         Recipe.hasMany(models.Instruction, {as: 'instructions'});
+        Recipe.hasMany(models.Like, { as: 'likes' });
     }
     return Recipe;
 }

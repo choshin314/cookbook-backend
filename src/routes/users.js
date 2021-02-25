@@ -11,11 +11,13 @@ const HttpError = require('../helpers/http-error');
 const { uploadPic, deletePic } = require('../helpers/file-uploads');
 const verifyAuth = require('../middleware/verifyAuth');
 const validateImg = require('../middleware/validateImg');
+const { SEARCH_LIMIT } = require('../constants')
 
 //-----------------GET LIST OF USERS---------------------//
 
 router.get('/', async (req, res, next) => {
-    let { q, filter } = req.query;
+    let { q, o, filter } = req.query;
+    let limitAndOffset = { limit: SEARCH_LIMIT, offset: parseInt(o) || 0 };
     if (!q) return res.json({ data: [] });
     q = q.trim();
     try {
@@ -23,19 +25,22 @@ router.get('/', async (req, res, next) => {
             case "username":
                 results = await User.findAll({ 
                     where: { username: {[Op.iLike]: `%${q}%`} },
-                    attributes: { exclude: ['password', 'createdAt', 'updatedAt' ] }
+                    attributes: { exclude: ['password', 'createdAt', 'updatedAt' ] },
+                    ...limitAndOffset
                 })
                 break;
             case "first":
                 results = await User.findAll({ 
                     where: { firstName: {[Op.iLike]: `%${q}%`} },
-                    attributes: { exclude: ['password', 'createdAt', 'updatedAt' ] }
+                    attributes: { exclude: ['password', 'createdAt', 'updatedAt' ] },
+                    ...limitAndOffset
                 })
                 break;
             case "last":
                 results = await User.findAll({ 
                     where: { lastName: {[Op.iLike]: `%${q}%`} },
-                    attributes: { exclude: ['password', 'createdAt', 'updatedAt' ] }
+                    attributes: { exclude: ['password', 'createdAt', 'updatedAt' ] },
+                    ...limitAndOffset
                 })
                 break;
             case "full":
@@ -49,7 +54,8 @@ router.get('/', async (req, res, next) => {
                             })
                         ]
                     },
-                    attributes: { exclude: ['password', 'createdAt', 'updatedAt' ] }
+                    attributes: { exclude: ['password', 'createdAt', 'updatedAt' ] },
+                    ...limitAndOffset
                 })
                 break;
             default:
@@ -64,7 +70,8 @@ router.get('/', async (req, res, next) => {
                             })
                         ]
                     },
-                    attributes: { exclude: ['password', 'createdAt', 'updatedAt' ] }
+                    attributes: { exclude: ['password', 'createdAt', 'updatedAt' ] },
+                    ...limitAndOffset
                 })
                 break;
         }
