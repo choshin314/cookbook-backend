@@ -19,7 +19,7 @@ const validateImg = require('../middleware/validateImg');
 const multer = require('multer');
 const upload = multer({ dest: '../uploads/'});
 const { uploadPic, deletePic } = require('../helpers/file-uploads');
-const { updateById, updateRecipeList } = require('../helpers/query-helpers');
+const { updateById, updateRecipeList, getPublicFeedRawSQL, getPrivateFeedRawSQL } = require('../helpers/query-helpers');
 const HttpError = require('../helpers/http-error');
 const { SEARCH_LIMIT } = require('../constants');
 
@@ -230,47 +230,22 @@ router.get('/bookmarks/:username', async (req, res, next) => {
     }
 })
 
-//-----------------------FEEDS-----------------------------//
-
-router.get('/feed/private', verifyAuth, async (req, res, next) => {
-    const lastFetched = new Date() - 1209600000
-    const user = await User.findOne({ 
-        include: [ { 
-            model: User, 
-            as: 'following', 
-            attributes: ['id'],
-            include: [ {
-                model: Recipe,
-                as: 'userRecipes'
-            } ] 
-        }]
-    })
-
-    console.log(user);
-    const recipes = await Recipe.findAll({ 
-        where: { updatedAt: { [Op.gt]: lastFetched }}
-    })
-    res.json(recipes)
-})
+//-----------------------PUBLIC FEED-----------------------------//
 
 router.get('/feed/public', async (req, res, next) => {
-    const offset = req.query.offset || 0;
+    let recipes;
+    let { older: olderThanTime, newer: newerThanTime } = req.query;
     try {
-        const recipes = await sequelize.query(`
-            SELECT 
-                recipes.*, 
-                count(likes.*) "likeCount", 
-                users.username, users.profile_pic, users.first_name, users.last_name,
-                count(reviews.*) "reviewCount",
-                avg(reviews.rating) "avgRating"
-            FROM recipes 
-            LEFT JOIN likes ON recipes.id = likes.recipe_id
-            LEFT JOIN reviews ON recipes.id = reviews.recipe_id
-            LEFT JOIN users ON recipes.user_id = users.id   
-            GROUP BY recipes.id, users.username, users.profile_pic, users.first_name, users.last_name 
-            ORDER BY "likeCount", recipes.created_at, recipes.title
-            LIMIT 5 OFFSET ${offset}
-        `);
+        if(olderThanTime) {
+            //olderThan should already come in ISOString format but reconvert just in case
+            olderThanTime = new Date(req.query.older).toISOString();
+            recipes = await sequelize.query(getPublicFeedRawSQL("olderThan", olderThanTime))
+        } else if (newerThanTime) {
+            newerThanTime = new Date(req.query.newer).toISOString();
+            recipes = await sequelize.query(getPublicFeedRawSQL("newerThan", newerThanTime));
+        } else {
+            throw new Error('No query')
+        }
         const formattedRecipes = recipes[0].map(r => ({
             id: r.id,
             title: r.title,
@@ -283,6 +258,8 @@ router.get('/feed/public', async (req, res, next) => {
             likeCount: r.likeCount,
             reviewCount: r.reviewCount,
             avgRating: r.avgRating,
+            updatedAt: r.updated_at,
+            createdAt: r.created_at,
             user: {
                 userId: r.user_id,
                 username: r.username,
@@ -406,6 +383,49 @@ router.patch('/:recipeId/instructions', async (req, res, next) => {
         res.json({ data: { instructions } })
     } catch (err) {
         return next(err);
+    }
+})
+
+//--------------------PRIVATE FEED---------------------//
+router.get('/feed/private', async (req, res, next) => {
+    let recipes;
+    let { older: olderThanTime, newer: newerThanTime } = req.query;
+    let { userId } = req.user;
+    try {
+        if(olderThanTime) {
+            olderThanTime = new Date(req.query.older).toISOString();
+            recipes = await sequelize.query(getPrivateFeedRawSQL("olderThan", olderThanTime, userId))
+        } else if (newerThanTime) {
+            newerThanTime = new Date(req.query.newer).toISOString();
+            recipes = await sequelize.query(getPrivateFeedRawSQL("newerThan", newerThanTime, userId));
+        } else {
+            throw new Error('No query')
+        }
+        const formattedRecipes = recipes[0].map(r => ({
+            id: r.id,
+            title: r.title,
+            slug: r.slug,
+            coverImg: r.cover_img,
+            intro: r.intro,
+            servings: r.servings,
+            prepTime: r.prep_time,
+            cookTime: r.cook_time,
+            likeCount: r.likeCount,
+            reviewCount: r.reviewCount,
+            avgRating: r.avgRating,
+            updatedAt: r.updated_at,
+            createdAt: r.created_at,
+            user: {
+                userId: r.user_id,
+                username: r.username,
+                profilePic: r.profile_pic,
+                firstName: r.first_name,
+                lastName: r.last_name
+            }
+        }))
+        res.json({ data: formattedRecipes })
+    } catch (err) {
+        return next(err)
     }
 })
 
