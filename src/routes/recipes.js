@@ -124,7 +124,7 @@ router.get('/', async (req, res, next) => {
 router.get('/:recipeId', async (req, res, next) => {
     Recipe.findByPk(req.params.recipeId, { 
         attributes: [
-            'id','title','slug','coverImg','intro','servings','prepTime','cookTime',
+            'id','title','slug','coverImg','intro','servings','prepTime','cookTime','createdAt','updatedAt',
             [sequelize.fn('COUNT', sequelize.col('reviews.id')), 'reviewCount'],
             [sequelize.fn('AVG', sequelize.col('reviews.rating')), 'avgRating'],
             [sequelize.fn('COUNT', sequelize.col('likedBy.username')), 'likeCount']
@@ -135,7 +135,7 @@ router.get('/:recipeId', async (req, res, next) => {
             { 
                 model: Review, 
                 as: 'reviews', 
-                attributes: ['content', 'updatedAt', 'headline', 'id', 'rating', 'recipeId', 'reviewImg'], 
+                attributes: ['content', 'updatedAt', 'headline', 'id', 'rating', 'recipeId', 'reviewImg', 'userId'], 
                 include: [{ model: User, as: 'user', attributes: ['username', 'profilePic']}]
             },
             { model: Ingredient, as: 'ingredients' },
@@ -191,7 +191,8 @@ router.get('/user/:username', async (req, res, next) => {
             LEFT JOIN reviews ON recipes.id = reviews.recipe_id
             LEFT JOIN likes ON recipes.id = likes.recipe_id
             WHERE recipes.user_id = '${id}'
-            GROUP BY recipes.id, users.id         
+            GROUP BY recipes.id, users.id 
+            ORDER BY recipes.created_at DESC        
         `, rawConfig(Recipe))
         res.status(200).json({ data: recipes })
     } catch (err) {
@@ -223,6 +224,7 @@ router.get('/bookmarks/:username', async (req, res, next) => {
             LEFT JOIN likes ON bookmarks.recipe_id = likes.recipe_id  
             WHERE bookmarks.user_id = '${id}' 
             GROUP BY recipes.id, users.id, bookmarks.recipe_id
+            ORDER BY recipes.created_at DESC 
         `, rawConfig(Recipe))
         res.status(200).json({ data: bookmarks });
     } catch (err) {
@@ -285,24 +287,57 @@ router.post('/', upload.single('coverImg'), async (req, res, next) => {
     } = JSON.parse(req.body.formJSON);
     try {
         let coverImg = await uploadPic(req.file.path);
-        const recipe = await Recipe.create({
-            title,
-            intro,
-            slug: convertToSlug(title),
-            coverImg,
-            servings,
-            prepTime,
-            cookTime,
-            tags: tags.map(tag => ({ content: tag.content })),
-            instructions: instructions.map((ins, i) => ({ content: ins.content, position: i })),
-            ingredients: ingredients.map((ing, i) => ({ content: ing.content, qty: ing.qty, unit: ing.unit, position: i })),
-            userId: req.user.userId,
-        }, { include: [ {model: Tag, as: 'tags'}, {model: Ingredient, as: "ingredients"}, {model: Instruction, as: "instructions"} ]})
-        res.status(201).json({ data: recipe })
+        const result = await sequelize.transaction(async (t) => {
+            const recipe = await Recipe.create({
+                title,
+                intro,
+                slug: convertToSlug(title),
+                coverImg,
+                servings,
+                prepTime,
+                cookTime,
+                userId: req.user.userId
+            }, { transaction: t })
+        
+            for (let tag of tags) {
+                await Tag.create({ 
+                    content: tag.content, 
+                    recipeId: recipe.id 
+                }, { transaction: t })
+            }
+            for (let i = 0; i < instructions.length; i++) {
+                await Instruction.create({ 
+                    content: instructions[i].content, 
+                    position: i,
+                    recipeId: recipe.id  
+                }, { transaction: t })
+            }
+            for (let i = 0; i < ingredients.length; i++) {
+                await Ingredient.create({ 
+                    content: ingredients[i].content,
+                    qty: ingredients[i].qty,
+                    unit: ingredients[i].unit, 
+                    position: i,
+                    recipeId: recipe.id  
+                }, { transaction: t })
+            }
+        
+            return await Recipe.findByPk(recipe.id, { 
+                include: [
+                    { model: Ingredient, as: 'ingredients' },
+                    { model: Instruction, as: 'instructions' },
+                    { model: Tag, as: 'tags' }
+                ]
+            })
+        })
+        res.status(201).json({ data: result })
     } catch(err) {
+        console.log(err.message);
         return next(new HttpError('Could not create recipe. Please try again later', 400))
     }
 })
+
+
 
 //-------------------UPDATE RECIPE --------------------//
 

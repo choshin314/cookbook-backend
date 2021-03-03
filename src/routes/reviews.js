@@ -22,7 +22,7 @@ router.post('/', upload.single('reviewImg'), async (req, res, next) => {
         newReview.reviewImg = reviewImg;
 
         await Review.create(newReview);
-        const updates = await Recipe.findByPk(recipe_id, {
+        const updates = await Recipe.findByPk(newReview.recipeId, {
             attributes: [
                 [sequelize.fn('COUNT', sequelize.col('reviews.id')), 'reviewCount'],
                 [sequelize.fn('AVG', sequelize.col('reviews.rating')), 'avgRating']
