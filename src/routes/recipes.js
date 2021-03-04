@@ -162,7 +162,7 @@ router.get('/:recipeId', async (req, res, next) => {
         .then(recipe => {
             // recipe.dataValues.user = recipe.dataValues.User;
             // delete recipe.dataValues.User;
-            if (!recipe) throw new HttpError('Recipe was not found')
+            if (!recipe) throw new HttpError('Recipe was not found', 404)
             res.json({ data: recipe })
         })
         .catch(err => next(err))
@@ -416,6 +416,21 @@ router.patch('/:recipeId/instructions', async (req, res, next) => {
             await updateRecipeList(Instruction, recipeId, incoming, existing, { transaction: t })
         ))
         res.json({ data: { instructions } })
+    } catch (err) {
+        return next(err);
+    }
+})
+
+//-------------------DELETE RECIPE----------------------//
+router.delete('/:recipeId', async (req, res, next) => {
+    const recipeId = parseInt(req.params.recipeId);
+    const userId = req.user.userId; 
+    
+    try {
+        const userOwnedRecipe = await Recipe.findOne({ where: { userId, id: recipeId }})
+        if (!userOwnedRecipe) throw new HttpError('User not authorized to delete this recipe', 403)
+        await userOwnedRecipe.destroy();
+        res.json({ data: userOwnedRecipe }) //sends back delete recipe
     } catch (err) {
         return next(err);
     }
