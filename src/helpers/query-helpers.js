@@ -1,4 +1,16 @@
 const { FEED_LIMIT } = require('../constants');
+const { 
+    User, 
+    Recipe, 
+    Review, 
+    Ingredient, 
+    Instruction, 
+    Tag, 
+    Bookmark, 
+    Follow,
+    Like,
+    sequelize
+} = require('../config/database');
 
 async function updateById(model, id, newValuesObj, transaction) {
     const newValueKeys = Object.keys(newValuesObj);
@@ -114,4 +126,28 @@ function getPrivateFeedRawSQL(fetchType, dateTime, userId) {
     `)
 }
 
-module.exports = { updateById, updateRecipeList, getPublicFeedRawSQL, getPrivateFeedRawSQL }
+async function appendReviewsToRecipe(rec) {
+    const recipePlusReviews = await Recipe.findByPk(rec.id, { 
+        attributes: [
+            'id','title','coverImg','slug',
+            [sequelize.fn('COUNT', sequelize.col('reviews.id')), 'reviewCount'],
+            [sequelize.fn('AVG', sequelize.col('reviews.rating')), 'avgRating'],
+            [sequelize.fn('COUNT', sequelize.col('likes.recipe_id')), 'likeCount']
+        ],
+        include: [
+            { model: User, as: 'user', attributes: ['id', 'username', 'profilePic', 'firstName', 'lastName']},
+            { model: Review, as: 'reviews', attributes: [] },
+            { model: Like, as: 'likes' }
+        ],
+        group: ['Recipe.id', 'user.id', 'likes.recipe_id', 'likes.user_id']
+    })
+    const reviews = await Review.findAll({
+        where: { recipeId: rec.id },
+        include: { model: User, as: 'user', attributes: ['username', 'profilePic'] }, 
+        order: [['createdAt', 'DESC']]
+    })
+    recipePlusReviews.dataValues.reviews = reviews;
+    return recipePlusReviews;
+}
+
+module.exports = { updateById, updateRecipeList, getPublicFeedRawSQL, getPrivateFeedRawSQL, appendReviewsToRecipe }

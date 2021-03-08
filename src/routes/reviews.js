@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { User, Review, Recipe } = require('../config/database')
+const { User, Review, Recipe, sequelize } = require('../config/database')
 const verifyAuth = require('../middleware/verifyAuth');
 const multer = require('multer');
 const upload = multer({ dest: '../uploads/'});
