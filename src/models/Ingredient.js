@@ -1,11 +1,11 @@
 module.exports = function(sequelize, DataTypes) {
     const Ingredient = sequelize.define('Ingredient', {
         qty: {
-            type: DataTypes.REAL,
+            type: DataTypes.STRING(10),
             allowNull: false,
             validate: {
                 notNull: true,
-                isFloat: true
+                len: [0, 10]
             }
         },
         unit: {
