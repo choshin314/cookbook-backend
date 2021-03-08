@@ -5,6 +5,7 @@ const express = require('express');
 const app = express();
 const db = require('./config/database');
 const authRoutes = require('./routes/auth');
+const accountRoutes = require('./routes/account');
 const userRoutes = require('./routes/users');
 const recipeRoutes = require('./routes/recipes');
 const socialRoutes = require('./routes/social');
@@ -23,6 +24,7 @@ app.use(express.urlencoded({ extended: false }));
 
 //-------------ROUTES--------------//
 app.use('/api/auth', authRoutes);
+app.use('/api/account', accountRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/social', socialRoutes);
