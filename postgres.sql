@@ -17,6 +17,16 @@ CREATE INDEX idx_users_id ON users(id);
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_fullname ON users((first_name || ' ' || last_name));
 
+CREATE TABLE tokens (
+    id SERIAL NOT NULL,
+    user_id UUID NOT NULL,
+    refresh_key UUID NOT NULL,
+    PRIMARY KEY (user_id, refresh_key),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_tokens_user_id ON tokens(user_id);
+
 CREATE TABLE recipes (
     id SERIAL NOT NULL,
     user_id UUID NOT NULL,

@@ -1,7 +1,10 @@
 const jwt = require('jsonwebtoken');
+const { v4: uuidv4 } = require('uuid');
 
-const ACCESS_EXP = 3600*24;
-const REFRESH_EXP = 3600 * 24 *365;
+const HttpError = require('./http-error');
+
+const ACCESS_EXP = '20s';
+const REFRESH_EXP = '1y';
 const ACCESS_SECRET = process.env.ACCESS_TOKEN_SECRET;
 const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET;
 
@@ -10,7 +13,29 @@ async function createAccessToken(userId) {
 }
 
 async function createRefreshToken(userId) {
-    return await jwt.sign({ userId }, REFRESH_SECRET, {expiresIn: REFRESH_EXP});
+    const key = uuidv4();
+    const refreshToken = await jwt.sign({ userId, key }, REFRESH_SECRET, {expiresIn: REFRESH_EXP});
+    return { refreshToken, key }
 }
 
-module.exports = { createAccessToken, createRefreshToken };
+async function verifyRefreshToken(refreshToken, model) {
+    try {
+        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+        const matchingToken = await model.findOne({ where: {
+            refreshKey: decoded.key,
+            userId: decoded.userId
+        }})
+        if (!matchingToken) throw new Error();
+        return await createAccessToken(decoded.userId);
+    } catch (err) {
+        if (err.name === 'TokenExpiredError') {
+            const { key: expKey, userId: expUserId } = jwt.decode(refreshToken);
+            await model.destroy({ where: {
+                refreshKey: expKey, userId: expUserId
+            }})
+        }
+        throw new HttpError('Not authorized', 401)
+    }
+}
+
+module.exports = { createAccessToken, createRefreshToken, verifyRefreshToken };
