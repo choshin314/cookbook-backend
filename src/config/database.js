@@ -1,7 +1,7 @@
 const { Sequelize, DataTypes } = require('sequelize');
 
 const sequelize = new Sequelize(process.env.DB, process.env.DB_USER, process.env.DB_PASS, {
-    host: 'localhost',
+    host: process.env.DB_HOST || 'localhost',
     dialect: 'postgres'
 })
 
@@ -14,7 +14,8 @@ const models = {
     Tag: require('../models/Tag')(sequelize, DataTypes),
     Bookmark: require('../models/Bookmark')(sequelize, DataTypes),
     Follow: require('../models/Follow')(sequelize, DataTypes),
-    Like: require('../models/Like')(sequelize, DataTypes)
+    Like: require('../models/Like')(sequelize, DataTypes),
+    Token: require('../models/Token')(sequelize, DataTypes)
 }
 
 for (let modelName in models) {
@@ -25,6 +26,4 @@ for (let modelName in models) {
 
 const rawConfig = (model) => ({ model: model, mapToModel: true, nest: true, raw: true });
 
-const db = { ...models, rawConfig, sequelize, Sequelize };
-
-module.exports = db;
+module.exports = { ...models, rawConfig, sequelize, Sequelize };

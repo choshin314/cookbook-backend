@@ -10,7 +10,7 @@ class HttpError extends Error {
             err.code = 500;
         }
         res.status(err.code);
-        res.json({ error: err.message })
+        res.json({ error: err.message, status: err.code })
     }
 }
 
