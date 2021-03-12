@@ -34,8 +34,8 @@ const registerUser = async (req, res, next) => {
         const accessToken = await createAccessToken(newUser.id);
 
         //puts a uuid 'key' claim on the refreshToken and saves that value in db instead of actual token
-        const { refreshToken, key } = await createRefreshToken(user.id);
-        await Token.create({ refreshKey: key, userId: user.id });
+        const { refreshToken, key } = await createRefreshToken(newUser.id);
+        await Token.create({ refreshKey: key, userId: newUser.id });
 
         res.status(201).json({ data:
             { 

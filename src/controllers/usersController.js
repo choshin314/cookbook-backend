@@ -42,19 +42,38 @@ const getUserStats = async (req, res, next) => {
 
 const getGivenUsersFollowers = async (req, res, next) => {
     const username = req.params.username;
-
+    //concat the most recently fetched follower's firstname, lastname, username (for offset)
+    const { ff, fl, fu } = req.query;
+    const lastFetchedUser = ff ? ff.concat(fl, fu) : '';
     try {
-        const user = await User.findOne({ 
-            attributes: ['username'],
+        const followee = await User.findOne({ where: { username }})
+        const follows = await Follow.findAll({
+            where: { followeeId: followee.id },
             include: [
-                { model: User, as: 'followers', attributes: [
-                    'username', 'id', 'firstName', 'lastName', 'profilePic'
-                ] }
+                { 
+                    model: User, 
+                    as: 'follower', 
+                    attributes: [
+                        'username', 'id', 'firstName', 'lastName', 'profilePic'
+                    ],
+                    where: sequelize.where(
+                        sequelize.fn(
+                            'concat', 
+                            sequelize.fn('lower', sequelize.col('first_name')),
+                            sequelize.fn('lower', sequelize.col('last_name')),
+                            sequelize.fn('lower', sequelize.col('username'))
+                        ), { [Op.gt]: lastFetchedUser }
+                    ) 
+                }
             ],
-            where: { username: username }
-        });
-        if (!user) throw new HttpError('Could not find resource', 404);
-        const followers = user.followers;
+            order: [
+                [{ model: User, as: 'follower' }, 'firstName', 'ASC'],
+                [{ model: User, as: 'follower' }, 'lastName', 'ASC'],
+                [{ model: User, as: 'follower' }, 'username', 'ASC']
+            ],
+            limit: 20
+        })
+        const followers = follows.map(f => f.follower)
         res.json({ data: followers })
     } catch(err) {
         return next(err);
@@ -62,20 +81,40 @@ const getGivenUsersFollowers = async (req, res, next) => {
 }
 
 const getGivenUsersFollowing = async (req, res, next) => {
-    const username = req.params.username;
+    const username = req.params.username; 
+    const { ff, fl, fu } = req.query;
+    const lastFetchedUser = ff ? (ff.concat(fl, fu)).toLowerCase() : '';
+
     try {
-        const user = await User.findOne({ 
-            attributes: ['username'],
+        const follower = await User.findOne({ where: { username }})
+        const follows = await Follow.findAll({
+            where: { followerId: follower.id },
             include: [
-                { model: User, as: 'following', attributes: [
-                    'username', 'id', 'firstName', 'lastName', 'profilePic'
-                ] }
+                { 
+                    model: User, 
+                    as: 'followee', 
+                    attributes: [
+                        'username', 'id', 'firstName', 'lastName', 'profilePic'
+                    ],
+                    where: sequelize.where(
+                        sequelize.fn(
+                            'concat', 
+                            sequelize.fn('lower', sequelize.col('first_name')),
+                            sequelize.fn('lower', sequelize.col('last_name')),
+                            sequelize.fn('lower', sequelize.col('username'))
+                        ), { [Op.gt]: lastFetchedUser }
+                    ) 
+                }
             ],
-            where: { username: username }
-        });
-        if (!user) throw new HttpError('Could not find resource', 404);
-        const following = user.following;
-        res.json({ data: following })
+            order: [
+                [{ model: User, as: 'followee' }, 'firstName', 'ASC'],
+                [{ model: User, as: 'followee' }, 'lastName', 'ASC'],
+                [{ model: User, as: 'followee' }, 'username', 'ASC']
+            ],
+            limit: 20
+        })
+        const followees = follows.map(f => f.followee)
+        res.json({ data: followees })
     } catch(err) {
         return next(err);
     }
