@@ -9,7 +9,7 @@ This is the backend for Cookbook, a site/app for creating recipes and saving oth
 #### Required Env Variables
 
 * PORT = port number
-* DB_CONNECTION = connection URI for db
+* DATABASE_URL = connection URI for db
 * CLOUDINARY_URL = required URL for Cloudinary SDK
 * ACCESS_TOKEN_SECRET = secret key for signing/verifying access JWTs
 * REFRESH_TOKEN_SECRET = samesies as above but for refresh JWTs

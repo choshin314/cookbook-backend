@@ -1,6 +1,6 @@
 const { Sequelize, DataTypes } = require('sequelize');
 
-const sequelize = new Sequelize(process.env.DB_CONNECTION)
+const sequelize = new Sequelize(process.env.DATABASE_URL)
 
 const models = {
     User: require('../models/User')(sequelize, DataTypes, Sequelize),
