@@ -70,8 +70,8 @@ CREATE TABLE follows (
     created_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ,
     PRIMARY KEY (follower_id, followee_id),
-    FOREIGN KEY (follower_id) REFERENCES users(id) ON UPDATE CASCADE,
-    FOREIGN KEY (followee_id) REFERENCES users(id) ON UPDATE CASCADE
+    FOREIGN KEY (follower_id) REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (followee_id) REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE INDEX idx_follower_id ON follows(follower_id);
