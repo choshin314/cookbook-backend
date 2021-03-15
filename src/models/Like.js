@@ -1,5 +1,5 @@
 module.exports = function(sequelize, DataTypes) {
-    const Like = sequelize.define('Like', {
+    const Like = sequelize.define('like', {
         recipeId: {
             type: DataTypes.INTEGER,
             allowNull: false,

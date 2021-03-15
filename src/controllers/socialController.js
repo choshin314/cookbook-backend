@@ -1,4 +1,4 @@
-const { Bookmark, Follow, Like, User, Recipe, sequelize } = require('../config/database');
+const { Bookmark, Follow, Like, User, Recipe, sequelize } = require('../models');
 const HttpError = require('../helpers/http-error')
 
 //------------BOOKMARKS------------//

@@ -1,15 +1,5 @@
-const { 
-    User, 
-    Review, 
-    Bookmark,
-    Tag, 
-    Ingredient, 
-    Recipe, 
-    Instruction, 
-    Follow, 
-    Like,
-    rawConfig, sequelize, Sequelize: {Op} 
-} = require('../config/database');
+const db = require('../models');
+const { rawConfig, sequelize, Sequelize: {Op} } = db;
 const { uploadPic, deletePic, validatePic } = require('../helpers/file-uploads');
 const { convertToSlug } = require('../helpers');
 const { 
@@ -25,29 +15,29 @@ const { SEARCH_LIMIT } = require('../constants');
 //--------READ OPS---------//
 const getRecipeById = async (req, res, next) => {
     try {
-        const recipe = await Recipe.findByPk(req.params.recipeId, { 
+        const recipe = await db.Recipe.findByPk(req.params.recipeId, { 
             attributes: [
                 'id','title','slug','coverImg','intro','servings','prepTime','cookTime','createdAt','updatedAt',
                 [sequelize.fn('COUNT', sequelize.col('reviews.id')), 'reviewCount'],
                 [sequelize.fn('AVG', sequelize.col('reviews.rating')), 'avgRating']
             ],
             include: [
-                { model: User, as: 'user', attributes: ['id', 'username', 'profilePic', 'firstName', 'lastName']},
+                { model: db.User, as: 'user', attributes: ['id', 'username', 'profilePic', 'firstName', 'lastName']},
                 { 
-                    model: Review, 
+                    model: db.Review, 
                     as: 'reviews',
                     attributes: []
                 },
-                { model: Ingredient, as: 'ingredients' },
-                { model: Instruction, as: 'instructions' },
-                { model: Tag, as: 'tags' }
+                { model: db.Ingredient, as: 'ingredients' },
+                { model: db.Instruction, as: 'instructions' },
+                { model: db.Tag, as: 'tags' }
             ],
             order: [
-                [{ model: Ingredient, as: 'ingredients' }, 'position','ASC'], 
-                [{ model: Instruction, as: 'instructions' }, 'position','ASC']
+                [{ model: db.Ingredient, as: 'ingredients' }, 'position','ASC'], 
+                [{ model: db.Instruction, as: 'instructions' }, 'position','ASC']
             ],
             group: [
-                'Recipe.id', 
+                'recipe.id', 
                 'user.id', 
                 'ingredients.id',
                 'instructions.id',
@@ -55,10 +45,10 @@ const getRecipeById = async (req, res, next) => {
             ]
         })
         if (!recipe) throw new HttpError('Recipe was not found', 404)
-        const reviews = await Review.findAll({
+        const reviews = await db.Review.findAll({
             where: { recipeId: recipe.id },
             include: { 
-                model: User, 
+                model: db.User, 
                 as: 'user', 
                 attributes: ['username', 'profilePic']
             }, 
@@ -75,7 +65,7 @@ const getUserProfileRecipes = async (req, res, next) => {
     const username = req.params.username; 
     if (!username) return next(new HttpError('Bad request', 400));
     try {
-        const {id} = await User.findOne({ attributes: ['id'], where: { username: username } });
+        const {id} = await db.User.findOne({ attributes: ['id'], where: { username: username } });
         const recipes = await sequelize.query(`
             SELECT 
                 recipes.*, 
@@ -94,7 +84,7 @@ const getUserProfileRecipes = async (req, res, next) => {
             WHERE recipes.user_id = '${id}'
             GROUP BY recipes.id, users.id 
             ORDER BY recipes.created_at DESC        
-        `, rawConfig(Recipe))
+        `, rawConfig(db.Recipe))
         res.status(200).json({ data: recipes })
     } catch (err) {
         return next(err)
@@ -105,7 +95,7 @@ const getUserProfileBookmarks = async (req, res, next) => {
     const username = req.params.username; 
     if (!username) return next(new HttpError('Bad request, need more info', 400));
     try {
-        const {id} = await User.findOne({ attributes: ['id'], where: { username: username } });
+        const {id} = await db.User.findOne({ attributes: ['id'], where: { username: username } });
         const bookmarks = await sequelize.query(`
             SELECT
                 bookmarks.recipe_id,    
@@ -126,7 +116,7 @@ const getUserProfileBookmarks = async (req, res, next) => {
             WHERE bookmarks.user_id = '${id}' 
             GROUP BY recipes.id, users.id, bookmarks.recipe_id
             ORDER BY recipes.created_at DESC 
-        `, rawConfig(Recipe))
+        `, rawConfig(db.Recipe))
         res.status(200).json({ data: bookmarks });
     } catch (err) {
         return next(err)
@@ -319,7 +309,7 @@ const createRecipe = async (req, res, next) => {
         if (picFileError) throw picFileError;
         let coverImg = await uploadPic(req.file.path);
         const result = await sequelize.transaction(async (t) => {
-            const recipe = await Recipe.create({
+            const recipe = await db.Recipe.create({
                 title,
                 intro,
                 slug: convertToSlug(title),
@@ -331,20 +321,20 @@ const createRecipe = async (req, res, next) => {
             }, { transaction: t })
         
             for (let tag of tags) {
-                await Tag.create({ 
+                await db.Tag.create({ 
                     content: tag.content, 
                     recipeId: recipe.id 
                 }, { transaction: t })
             }
             for (let i = 0; i < instructions.length; i++) {
-                await Instruction.create({ 
+                await db.Instruction.create({ 
                     content: instructions[i].content, 
                     position: i,
                     recipeId: recipe.id  
                 }, { transaction: t })
             }
             for (let i = 0; i < ingredients.length; i++) {
-                await Ingredient.create({ 
+                await db.Ingredient.create({ 
                     content: ingredients[i].content,
                     qty: ingredients[i].qty,
                     unit: ingredients[i].unit, 
@@ -352,14 +342,7 @@ const createRecipe = async (req, res, next) => {
                     recipeId: recipe.id  
                 }, { transaction: t })
             }
-        
-            return await Recipe.findByPk(recipe.id, { 
-                include: [
-                    { model: Ingredient, as: 'ingredients' },
-                    { model: Instruction, as: 'instructions' },
-                    { model: Tag, as: 'tags' }
-                ]
-            })
+            return recipe
         })
         res.status(201).json({ data: result })
     } catch(err) {
@@ -371,7 +354,7 @@ const createRecipe = async (req, res, next) => {
 const updateRecipeGeneralInfo = async (req, res, next) => {
     const recipeId = parseInt(req.params.recipeId);
     try {
-        const result = await updateById(Recipe, recipeId, req.body);
+        const result = await updateById(db.Recipe, recipeId, req.body);
         if (result.error) throw new Error(result.error);
         res.json({ data: result.data });
     } catch (err) {
@@ -385,8 +368,8 @@ const updateRecipePic = async (req, res, next) => {
         const picFileError = validatePic(req.file, 1024000);
         if (picFileError) throw picFileError;
         const newCoverImgUrl = await uploadPic(req.file.path);
-        const oldCoverImgUrl = await Recipe.findByPk(recipeId, { attributes: ['coverImg']});
-        const result = await updateById(Recipe, recipeId, { coverImg: newCoverImgUrl });
+        const oldCoverImgUrl = await db.Recipe.findByPk(recipeId, { attributes: ['coverImg']});
+        const result = await updateById(db.Recipe, recipeId, { coverImg: newCoverImgUrl });
         if (result.error) throw new Error(result.error);
         const deletion = await deletePic(oldCoverImgUrl.coverImg);
         if (!deletion.result === 'ok') console.log(deletion);
@@ -401,12 +384,12 @@ const updateRecipeTags = async (req, res, next) => {
     const incoming = req.body.tags;
 
     try {
-        const existing = await Tag.findAll({
+        const existing = await db.Tag.findAll({
             order: [['id', 'ASC']],
             where: { recipeId }
         })
         const tags = await sequelize.transaction(async (t) => (
-            await updateRecipeList(Tag, recipeId, incoming, existing, { transaction: t }, true)
+            await updateRecipeList(db.Tag, recipeId, incoming, existing, { transaction: t }, true)
         ))
         res.json({ data: { tags} });
     } catch(err) {
@@ -419,12 +402,12 @@ const updateRecipeIngredients = async (req, res, next) => {
     const incoming = req.body.ingredients;
 
     try {
-        const existing = await Ingredient.findAll({ 
+        const existing = await db.Ingredient.findAll({ 
             order: [['id', 'ASC']], 
             where: { recipeId } 
         })
         const ingredients = await sequelize.transaction(async (t) => (
-            await updateRecipeList(Ingredient, recipeId, incoming, existing, { transaction: t })
+            await updateRecipeList(db.Ingredient, recipeId, incoming, existing, { transaction: t })
         ))
         res.json({ data: { ingredients } })
     } catch (err) {
@@ -437,12 +420,12 @@ const updateRecipeInstructions = async (req, res, next) => {
     const incoming = req.body.instructions;
 
     try {
-        const existing = await Instruction.findAll({ 
+        const existing = await db.Instruction.findAll({ 
             order: [['id', 'ASC']], 
             where: { recipeId } 
         })
         const instructions = await sequelize.transaction(async (t) => (
-            await updateRecipeList(Instruction, recipeId, incoming, existing, { transaction: t })
+            await updateRecipeList(db.Instruction, recipeId, incoming, existing, { transaction: t })
         ))
         res.json({ data: { instructions } })
     } catch (err) {
@@ -455,7 +438,7 @@ const deleteRecipe = async (req, res, next) => {
     const userId = req.user.userId; 
     
     try {
-        const userOwnedRecipe = await Recipe.findOne({ where: { userId, id: recipeId }})
+        const userOwnedRecipe = await db.Recipe.findOne({ where: { userId, id: recipeId }})
         if (!userOwnedRecipe) throw new HttpError('User not authorized to delete this recipe', 403)
         await userOwnedRecipe.destroy();
         res.json({ data: userOwnedRecipe }) //sends back delete recipe

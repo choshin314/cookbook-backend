@@ -1,5 +1,5 @@
 module.exports = function(sequelize, DataTypes) {
-    const Instruction = sequelize.define('Instruction', {
+    const Instruction = sequelize.define('instruction', {
         content: {
             type: DataTypes.TEXT,
             allowNull: false,

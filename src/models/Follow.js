@@ -1,5 +1,5 @@
 module.exports = function(sequelize, DataTypes) {
-    const Follow = sequelize.define('Follow', {
+    const Follow = sequelize.define('follow', {
         followerId: {
             type: DataTypes.UUID,
             allowNull: false,

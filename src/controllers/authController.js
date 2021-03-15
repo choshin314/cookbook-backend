@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-const { User, Token, sequelize, Sequelize: { Op } } = require('../config/database');
+const { User, Token, sequelize, Sequelize: { Op } } = require('../models');
 const HttpError = require('../helpers/http-error');
 const { createAccessToken, createRefreshToken, verifyRefreshToken } = require('../helpers/jwt-helpers');
 

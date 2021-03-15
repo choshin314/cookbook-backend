@@ -1,6 +1,5 @@
-const { DataTypes } = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-    const Bookmark = sequelize.define('Bookmark', {
+    const Bookmark = sequelize.define('bookmark', {
         recipeId: {
             type: DataTypes.INTEGER,
             allowNull: false,

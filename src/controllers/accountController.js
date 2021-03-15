@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt');
 
-const { User, Recipe, Review, Follow, sequelize, Sequelize: {Op} } = require('../config/database');
+const { User, sequelize } = require('../models');
 const HttpError = require('../helpers/http-error');
 const { uploadPic, deletePic, validatePic } = require('../helpers/file-uploads');
 const { SEARCH_LIMIT } = require('../constants');

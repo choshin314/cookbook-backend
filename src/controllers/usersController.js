@@ -1,4 +1,4 @@
-const { User, Recipe, Review, Follow, sequelize, Sequelize : {Op} } = require('../config/database');
+const { User, Recipe, Review, Follow, sequelize, Sequelize : {Op} } = require('../models');
 const HttpError = require('../helpers/http-error');
 const { SEARCH_LIMIT } = require('../constants');
 

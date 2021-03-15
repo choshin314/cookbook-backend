@@ -1,5 +1,5 @@
-function Recipe(sequelize, DataTypes) {
-    const Recipe = sequelize.define('Recipe', {
+module.exports = function(sequelize, DataTypes) {
+    const Recipe = sequelize.define('recipe', {
         title: {
             type: DataTypes.STRING(50),
             allowNull: false,
@@ -90,5 +90,3 @@ function Recipe(sequelize, DataTypes) {
     }
     return Recipe;
 }
-
-module.exports = Recipe;

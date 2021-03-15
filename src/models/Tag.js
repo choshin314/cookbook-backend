@@ -1,5 +1,5 @@
 module.exports = function(sequelize, DataTypes) {
-    const Tag = sequelize.define('Tag', {
+    const Tag = sequelize.define('tag', {
         content: {
             type: DataTypes.STRING(20),
             allowNull: false,

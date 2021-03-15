@@ -1,5 +1,5 @@
 module.exports = function(sequelize, DataTypes) {
-    const Ingredient = sequelize.define('Ingredient', {
+    const Ingredient = sequelize.define('ingredient', {
         qty: {
             type: DataTypes.STRING(10),
             allowNull: false,

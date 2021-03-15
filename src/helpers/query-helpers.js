@@ -10,7 +10,7 @@ const {
     Follow,
     Like,
     sequelize
-} = require('../config/database');
+} = require('../models');
 
 async function updateById(model, id, newValuesObj, transaction) {
     const newValueKeys = Object.keys(newValuesObj);
@@ -139,7 +139,7 @@ async function appendReviewsToRecipe(rec) {
             { model: Review, as: 'reviews', attributes: [] },
             { model: Like, as: 'likes' }
         ],
-        group: ['Recipe.id', 'user.id', 'likes.recipe_id', 'likes.user_id']
+        group: ['recipe.id', 'user.id', 'likes.recipe_id', 'likes.user_id']
     })
     const reviews = await Review.findAll({
         where: { recipeId: rec.id },

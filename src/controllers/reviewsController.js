@@ -1,4 +1,4 @@
-const { User, Review, Recipe, sequelize } = require('../config/database')
+const { User, Review, Recipe, sequelize } = require('../models');
 const HttpError = require('../helpers/http-error');
 const { updateById } = require('../helpers/query-helpers');
 const { validatePic, uploadPic, deletePic } = require('../helpers/file-uploads')
@@ -26,7 +26,7 @@ const createReview = async (req, res, next) => {
                 { model: User, as: 'user', attributes: ['username', 'profilePic']}
             ]}],
             order: [[{ model: Review, as: 'reviews' }, 'createdAt','DESC']],
-            group: ['Recipe.id', 'reviews.id', 'reviews->user.id']
+            group: ['recipe.id', 'reviews.id', 'reviews->user.id']
         })
         res.json({ data: updates }); //sends back { data: { reviews: [...] }} 
     } catch (err) {
@@ -60,7 +60,7 @@ const deleteReview = async (req, res, next) => {
         if (!userOwnedReview) throw new HttpError('User not authorized to delete this review', 403)
         const reviewPicURL = userOwnedReview.reviewImg
         await userOwnedReview.destroy()
-        await deletePic(reviewPicURL)
+        if (reviewPicURL) await deletePic(reviewPicURL)
         res.json({ data: userOwnedReview }) //sends back { data: { edited properties }}
     } catch (err) {
         return next(err);

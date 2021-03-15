@@ -1,5 +1,5 @@
 module.exports = function(sequelize, DataTypes) {
-    const Token = sequelize.define('Token', {
+    const Token = sequelize.define('token', {
         refreshKey: {
             type: DataTypes.UUID,
             allowNull: false
