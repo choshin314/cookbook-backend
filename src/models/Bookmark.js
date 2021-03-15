@@ -36,14 +36,16 @@ module.exports = function(sequelize, DataTypes) {
                 name: 'recipeId',
                 field: 'recipe_id'
             },
-            as: 'recipe'
+            as: 'recipe',
+            onDelete: 'CASCADE'
         });
         Bookmark.belongsTo(models.User, {
             foreignKey: {
                 name: 'userId',
                 field: 'user_id'
             },
-            as: 'user'
+            as: 'user',
+            onDelete: 'CASCADE'
         })
     }
 

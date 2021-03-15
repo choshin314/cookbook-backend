@@ -29,7 +29,8 @@ module.exports = function(sequelize, DataTypes) {
                 field: 'recipe_id',
                 type: DataTypes.INTEGER,
                 allowNull: false
-            }
+            },
+            onDelete: 'CASCADE'
         })
     }
 

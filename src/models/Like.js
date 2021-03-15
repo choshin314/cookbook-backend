@@ -34,13 +34,15 @@ module.exports = function(sequelize, DataTypes) {
             foreignKey: {
                 name: 'recipeId',
                 field: 'recipe_id'
-            }
+            },
+            onDelete: 'CASCADE'
         });
         Like.belongsTo(models.User, {
             foreignKey: {
                 name: 'userId',
                 field: 'user_id'
-            }
+            },
+            onDelete: 'CASCADE'
         });  
     }
 

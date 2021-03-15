@@ -18,7 +18,8 @@ module.exports = function(sequelize, DataTypes) {
                 type: DataTypes.UUID,
                 allowNull: false
             },
-            as: 'user'
+            as: 'user',
+            onDelete: 'CASCADE'
         })
     }
 

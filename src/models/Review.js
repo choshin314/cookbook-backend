@@ -40,7 +40,8 @@ module.exports = function(sequelize, DataTypes){
                 validate: {
                     notNull: true
                 }
-            }
+            },
+            onDelete: 'CASCADE'
         });
         
         Review.belongsTo(models.User, {

@@ -39,14 +39,16 @@ module.exports = function(sequelize, DataTypes) {
                 name: 'followerId',
                 field: 'follower_id'
             },
-            as: 'follower'
+            as: 'follower',
+            onDelete: 'CASCADE'
         });
         Follow.belongsTo(models.User, {
             foreignKey: {
                 name: 'followeeId',
                 field: 'followee_id'
             },
-            as: 'followee'
+            as: 'followee',
+            onDelete: 'CASCADE'
         })
     }
 
