@@ -3,7 +3,7 @@ const router = express.Router();
 const verifyAuth = require('../middleware/verifyAuth');
 const multer = require('multer');
 const { createReview, updateReview, deleteReview } = require('../controllers/reviewsController');
-const upload = multer({ dest: '../uploads/'});
+const upload = multer({ dest: __dirname + '/uploads/'});
 
 router.use(verifyAuth);
 
