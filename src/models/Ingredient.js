@@ -1,26 +1,22 @@
 module.exports = function(sequelize, DataTypes) {
     const Ingredient = sequelize.define('ingredient', {
         qty: {
-            type: DataTypes.STRING(10),
+            type: DataTypes.STRING(30),
             allowNull: false,
             validate: {
                 notNull: true,
-                len: [0, 10]
+                len: [0, 30]
             }
         },
         unit: {
-            type: DataTypes.STRING,
-            allowNull: false,
-            validate: {
-                notNull: true
-            }
+            type: DataTypes.STRING(30)
         },
         content: {
             type: DataTypes.STRING,
             allowNull: false,
             validate: {
                 notNull: true,
-                len: [3]
+                len: [3, 255]
             }
         },
         position: {
