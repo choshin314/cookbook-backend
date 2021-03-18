@@ -1,5 +1,6 @@
 const cloudinary = require('cloudinary').v2;
 const HttpError = require('./http-error');
+const fs = require('fs');
 
 function validatePic(file, sizeLimit) {
     if (!file || !file.size || !file.mimetype) return new HttpError('Bad request', 400);
@@ -16,6 +17,7 @@ async function uploadPic(filepath, next) {
         await cloudinary.uploader.upload(filepath, {}, (err, result) => {
             url = result.secure_url;
         });
+        await fs.unlinkSync(filepath)
         return url;
     } catch (err) {
         const error = new HttpError('Problem uploading picture, please try again later', 500);
