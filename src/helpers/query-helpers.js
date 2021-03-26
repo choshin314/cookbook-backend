@@ -108,7 +108,9 @@ function getPrivateFeedRawSQL(fetchType, dateTime, userId) {
             avg(reviews.rating) "avgRating",
             users.username, users.profile_pic, users.first_name, users.last_name
         FROM follows 
-        INNER JOIN recipes ON follows.followee_id = recipes.user_id 
+        INNER JOIN recipes 
+        ON follows.followee_id = recipes.user_id OR
+            follows.follower_id = recipes.user_id
         LEFT JOIN likes ON recipes.id = likes.recipe_id
         LEFT JOIN reviews ON recipes.id = reviews.recipe_id
         LEFT JOIN users ON recipes.user_id = users.id
