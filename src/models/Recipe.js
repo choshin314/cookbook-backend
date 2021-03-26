@@ -20,7 +20,7 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: false,
             validate: {
                 notNull: true,
-                len: [50, 400]
+                len: [20, 400]
             }
         },
         coverImg: {
