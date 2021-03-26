@@ -242,7 +242,7 @@ const getRecipesForPublicFeed = async (req, res, next) => {
             updatedAt: r.updated_at,
             createdAt: r.created_at,
             user: {
-                userId: r.user_id,
+                id: r.user_id,
                 username: r.username,
                 profilePic: r.profile_pic,
                 firstName: r.first_name,
@@ -284,7 +284,7 @@ const getRecipesForPrivateFeed = async (req, res, next) => {
             updatedAt: r.updated_at,
             createdAt: r.created_at,
             user: {
-                userId: r.user_id,
+                id: r.user_id,
                 username: r.username,
                 profilePic: r.profile_pic,
                 firstName: r.first_name,
