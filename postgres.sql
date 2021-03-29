@@ -45,6 +45,7 @@ CREATE TABLE recipes (
 
 CREATE INDEX idx_recipes_title ON recipes(title);
 CREATE INDEX idx_recipes_user_id ON recipes(user_id);
+CREATE INDEX idx_recipes_created_at ON recipes(created_at);
 
 CREATE TABLE reviews (
     id SERIAL NOT NULL,
@@ -106,9 +107,9 @@ CREATE INDEX idx_likes_recipe_id ON likes(recipe_id);
 CREATE TABLE ingredients (
     id SERIAL NOT NULL, 
     recipe_id INT NOT NULL,
-    qty VARCHAR(10) NOT NULL,
-    unit VARCHAR(20) NOT NULL,
-    content VARCHAR(50) NOT NULL,
+    qty VARCHAR(30) NOT NULL,
+    unit VARCHAR(30),
+    content VARCHAR(255) NOT NULL,
     position INT NOT NULL,
     PRIMARY KEY (id),
     FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
