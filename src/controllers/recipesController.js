@@ -307,7 +307,7 @@ const createRecipe = async (req, res, next) => {
     try {
         const picFileError = validatePic(req.file, 1024000);
         if (picFileError) throw picFileError;
-        let coverImg = await uploadPic(req.file.path);
+        let coverImg = await uploadPic(req.file.path, next);
         const result = await sequelize.transaction(async (t) => {
             const recipe = await db.Recipe.create({
                 title,

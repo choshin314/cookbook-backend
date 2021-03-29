@@ -10,6 +10,7 @@
 /build
 
 # misc
+src/routes/uploads
 /tmp
 .DS_Store
 .env

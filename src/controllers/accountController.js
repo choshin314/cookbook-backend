@@ -62,7 +62,7 @@ const updateProfilePic = async (req, res, next) => {
         const user = await User.findByPk(userId);
         if (!user) throw new Error('User does not exist');
         const picToOverwrite = user.profilePic;
-        const newPic = await uploadPic(req.file.path);
+        const newPic = await uploadPic(req.file.path, next);
         await user.update({ profilePic: newPic });
         if (picToOverwrite) await deletePic(picToOverwrite);
         res.json({data: { profilePic: newPic }})

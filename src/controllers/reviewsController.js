@@ -13,7 +13,7 @@ const createReview = async (req, res, next) => {
         if (req.file) {
             const picFileError = validatePic(req.file, 1024000);
             if (picFileError) throw picFileError;
-            reviewImg = await uploadPic(req.file.path);
+            reviewImg = await uploadPic(req.file.path, next);
         }
         newReview.reviewImg = reviewImg;
         await Review.create(newReview);
