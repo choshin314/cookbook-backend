@@ -2,12 +2,18 @@ const { User, Recipe, Review, Follow, sequelize, Sequelize : {Op} } = require('.
 const HttpError = require('../helpers/http-error');
 const { SEARCH_LIMIT } = require('../constants');
 
-const getUserByUsername = async (req, res, next) => {
+const getUserByUsernameOrId = async (req, res, next) => {
+    const { usernameOrId } = req.params;
     try {
-        const user = await User.findOne({ 
-            attributes: ['username', 'id', 'firstName', 'lastName', 'profilePic', 'bio'],
-            where: { username: req.params.username }
-        })
+        const user = req.query.by === 'id' ?
+            await User.findByPk(usernameOrId, { 
+                attributes: ['username', 'id', 'firstName', 'lastName', 'profilePic', 'bio']
+            }) 
+            :
+            await User.findOne({ 
+                attributes: ['username', 'id', 'firstName', 'lastName', 'profilePic', 'bio'],
+                where: { username: usernameOrId }
+            }) 
         if (!user) throw new HttpError('Could not find resource', 404)
         res.json({ data: user })
     } catch(err) {
@@ -16,19 +22,29 @@ const getUserByUsername = async (req, res, next) => {
 }
 
 const getUserStats = async (req, res, next) => {
-    const username = req.params.username;
+    const { usernameOrId } = req.params;
     //get user follower count, following count, recipe count
     try {
         const stats = {};
-        const user = await User.findOne({ 
-            attributes: ['username'],
-            include: [
-                { model: Recipe, as: 'userRecipes', attributes: ['id'] }, 
-                { model: User, as: 'followers', attributes: ['username'] }, 
-                { model: User, as: 'following', attributes: ['username'] }
-            ],
-            where: { username: username }
-        });
+        const user = req.query.by === 'id' ?
+            await User.findByPk(usernameOrId, { 
+                attributes: ['username'],
+                include: [
+                    { model: Recipe, as: 'userRecipes', attributes: ['id'] }, 
+                    { model: User, as: 'followers', attributes: ['username'] }, 
+                    { model: User, as: 'following', attributes: ['username'] }
+                ]
+            }) 
+            :
+            await User.findOne({ 
+                attributes: ['username'],
+                include: [
+                    { model: Recipe, as: 'userRecipes', attributes: ['id'] }, 
+                    { model: User, as: 'followers', attributes: ['username'] }, 
+                    { model: User, as: 'following', attributes: ['username'] }
+                ],
+                where: { username: usernameOrId }
+            });
         if (!user) throw new HttpError('Could not find resource', 404);
         stats.recipeCount = user.userRecipes.length;
         stats.followerCount = user.followers.length;
@@ -187,7 +203,7 @@ const getUserSearchResults = async (req, res, next) => {
 }
 
 module.exports = {
-    getUserByUsername,
+    getUserByUsernameOrId,
     getUserStats,
     getGivenUsersFollowers,
     getGivenUsersFollowing,

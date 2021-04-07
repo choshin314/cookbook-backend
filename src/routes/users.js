@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const { 
-    getUserByUsername, 
+    getUserByUsernameOrId, 
     getUserStats, 
     getGivenUsersFollowers, 
     getGivenUsersFollowing, 
@@ -11,9 +11,9 @@ const {
 
 router.get('/', getUserSearchResults)
 
-router.get('/:username', getUserByUsername)
+router.get('/:usernameOrId', getUserByUsernameOrId)
 
-router.get('/:username/stats', getUserStats)
+router.get('/:usernameOrId/stats', getUserStats)
 
 router.get('/:username/followers', getGivenUsersFollowers)
 
