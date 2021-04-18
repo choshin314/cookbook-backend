@@ -1,4 +1,4 @@
-const { Bookmark, Follow, Like, User, Recipe, sequelize } = require('../models');
+const { Bookmark, Follow, Like, Notification, User, Recipe, sequelize } = require('../models');
 const HttpError = require('../helpers/http-error')
 
 //------------BOOKMARKS------------//
@@ -75,7 +75,19 @@ const followUserById = async (req, res, next) => {
     try {
         const userId = req.user.userId;
         const followeeId = req.body.id;
-        const newFollowee = await Follow.create({ followerId: userId, followeeId: followeeId});
+        const { newFollowee, newNotification } = await sequelize.transaction(async (t) => {
+            const newFollowee = await Follow.create({ 
+                followerId: userId, followeeId: followeeId
+            }, { transaction: t });
+
+            const newNotification = await Notification.create({ 
+                newFollowerId: userId, 
+                recipientId: followeeId 
+            }, { transaction: t });
+
+            return { newFollowee, newNotification };
+        });
+        //send message with sockets here?
         res.json({ data: { id: newFollowee.followeeId }})
     } catch(err) {
         return next(err);

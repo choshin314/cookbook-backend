@@ -1,9 +1,10 @@
 const Sequelize = require('sequelize');
 const env = process.env.NODE_ENV || 'development';
 const config = require(__dirname + '/../config/config.js')[env];
+const DATABASE_URL = process.env.DATABASE_URL;
 const db = {};
 
-let sequelize = new Sequelize(process.env[config.use_env_variable], config);
+let sequelize = new Sequelize(DATABASE_URL, config);
 
 const models = {
   User: require('./User')(sequelize, Sequelize.DataTypes),
@@ -15,7 +16,8 @@ const models = {
   Bookmark: require('./Bookmark')(sequelize, Sequelize.DataTypes),
   Follow: require('./Follow')(sequelize, Sequelize.DataTypes),
   Like: require('./Like')(sequelize, Sequelize.DataTypes),
-  Token: require('./Token')(sequelize, Sequelize.DataTypes)
+  Token: require('./Token')(sequelize, Sequelize.DataTypes),
+  Notification: require('./Notification')(sequelize, Sequelize.DataTypes)
 }
 
 for (let modelName in models) {

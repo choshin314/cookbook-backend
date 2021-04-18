@@ -54,6 +54,14 @@ module.exports = function(sequelize, DataTypes){
             as: 'user',
             onDelete: 'CASCADE'
         });
+
+        Review.hasOne(models.Notification, {
+            foreignKey: {
+                name: 'newReviewId',
+                field: 'new_review_id'
+            }, 
+            as: 'newReview'
+        })
     }
 
     return Review;

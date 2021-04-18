@@ -94,6 +94,20 @@ module.exports = function(sequelize, DataTypes) {
             },
             through: models.Follow
         }); 
+        User.hasMany(models.Notification, {
+            as: 'recipient',
+            foreignKey: {
+                name: 'recipientId',
+                field: 'recipient_id'
+            }
+        });
+        User.hasMany(models.Notification, {
+            as: 'newFollower',
+            foreignKey: {
+                name: 'newFollowerId',
+                field: 'new_follower_id'
+            }
+        });
     }
 
     return User;

@@ -1,22 +1,36 @@
-const { User, Review, Recipe, sequelize } = require('../models');
+const { User, Review, Recipe, Notification, sequelize } = require('../models');
 const HttpError = require('../helpers/http-error');
 const { updateById } = require('../helpers/query-helpers');
 const { validatePic, uploadPic, deletePic } = require('../helpers/file-uploads')
 
 const createReview = async (req, res, next) => {
     //client sends all non-file fields in one stringified form field called 'formJSON'
-    const newReview = { userId: req.user.userId, ...JSON.parse(req.body.formJSON) };
+    let newReview = { userId: req.user.userId, ...JSON.parse(req.body.formJSON) };
     try {
         const reviewExists = await Review.findOne({ where: { userId: newReview.userId, recipeId: newReview.recipeId }});
         if (reviewExists) throw new HttpError('Review already exists', 400);
-        let reviewImg = null;
+        newReview.reviewImg = null;
         if (req.file) {
             const picFileError = validatePic(req.file, 1024000);
             if (picFileError) throw picFileError;
-            reviewImg = await uploadPic(req.file.path, next);
+            newReview.reviewImg = await uploadPic(req.file.path, next);
         }
-        newReview.reviewImg = reviewImg;
-        await Review.create(newReview);
+        
+        //create and return new review & new notification
+        const { newNotification, review } = await sequelize.transaction(async (t) => {
+            const review = await Review.create(newReview, { transaction: t });
+            const reviewedRecipe = await Recipe.findByPk(newReview.recipeId, {
+                attributes: ['userId']
+            }, { transaction: t })
+            const newNotification = await Notification.create({
+                recipientId: reviewedRecipe.userId,
+                newReviewId: review.id
+            }, { transaction: t })
+            return { newNotification, review };
+        })
+
+        newReview = review;
+        
         const updates = await Recipe.findByPk(newReview.recipeId, {
             attributes: [
                 [sequelize.fn('COUNT', sequelize.col('reviews.id')), 'reviewCount'],
