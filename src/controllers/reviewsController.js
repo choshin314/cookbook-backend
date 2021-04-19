@@ -27,6 +27,7 @@ const createReview = async (req, res, next) => {
                 newReviewId: review.id,
                 category: 'review'
             }, { transaction: t })
+            await Notification.notify(newNotification.id, { transaction: t });
             return { newNotification, review };
         })
 

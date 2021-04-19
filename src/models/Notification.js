@@ -47,7 +47,7 @@ module.exports = function(sequelize, DataTypes) {
         });
     }
 
-    Notification.findNested = async function (options={}) {
+    Notification.findNested = async function (options={}, transactionObject) {
         const { recipientId, notificationId, offset } = options;
         const getWhereClause = () => {
             if (recipientId) {
@@ -93,9 +93,17 @@ module.exports = function(sequelize, DataTypes) {
             LEFT JOIN users reviewers ON reviews.user_id = reviewers.id
             LEFT JOIN recipes ON reviews.recipe_id = recipes.id
             ${getWhereClause()}
-        `, { raw: true, nest: true })
+        `, { raw: true, nest: true, ...transactionObject })
 
-        return joined;
+        return notificationId ? joined[0] : joined; //return single object or array
+    }
+
+    Notification.notify = async (id, transaction) => {
+        const notificationObject = await Notification.findNested({ notificationId: id }, transaction);
+        await sequelize.query(`NOTIFY "new_notification", :payload`, { 
+            replacements: { payload: JSON.stringify(notificationObject)},
+            ...transaction
+        })
     }
 
     return Notification;

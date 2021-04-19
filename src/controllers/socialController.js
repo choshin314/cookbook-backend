@@ -86,6 +86,7 @@ const followUserById = async (req, res, next) => {
                 category: 'follow' 
             }, { transaction: t });
 
+            await Notification.notify(newNotification.id, { transaction: t });
             return { newFollowship, newNotification };
         });
         //send message with sockets here? 

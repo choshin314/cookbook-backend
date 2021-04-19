@@ -13,6 +13,11 @@ const reviewRoutes = require('./routes/reviews');
 const HttpError = require('./helpers/http-error');
 
 //-------------DB--------------//
+db.initDedicatedListener((msgPayload) => {
+    console.log('msg received')
+    console.log(msgPayload)
+})
+
 db.sequelize.authenticate()
     .then(() => console.log('database connected'))
     .catch(err => console.log('Error: ' + err));
