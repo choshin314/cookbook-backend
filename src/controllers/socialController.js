@@ -75,20 +75,21 @@ const followUserById = async (req, res, next) => {
     try {
         const userId = req.user.userId;
         const followeeId = req.body.id;
-        const { newFollowee, newNotification } = await sequelize.transaction(async (t) => {
-            const newFollowee = await Follow.create({ 
+        const { newFollowship, newNotification } = await sequelize.transaction(async (t) => {
+            const newFollowship = await Follow.create({ 
                 followerId: userId, followeeId: followeeId
             }, { transaction: t });
 
             const newNotification = await Notification.create({ 
                 newFollowerId: userId, 
-                recipientId: followeeId 
+                recipientId: followeeId,
+                category: 'follow' 
             }, { transaction: t });
 
-            return { newFollowee, newNotification };
+            return { newFollowship, newNotification };
         });
-        //send message with sockets here?
-        res.json({ data: { id: newFollowee.followeeId }})
+        //send message with sockets here? 
+        res.json({ data: { id: newFollowship.followeeId }})
     } catch(err) {
         return next(err);
     }

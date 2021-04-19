@@ -141,6 +141,7 @@ CREATE INDEX idx_tags_recipe_id ON tags(recipe_id);
 
 CREATE TABLE notifications (
     id SERIAL NOT NULL,
+    category VARCHAR NOT NULL,
     recipient_id UUID NOT NULL,
     new_review_id INT,
     new_follower_id UUID,
