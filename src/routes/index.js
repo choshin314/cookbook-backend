@@ -4,5 +4,6 @@ module.exports = {
     recipeRoutes: require('./recipes.js'),
     reviewRoutes: require('./reviews.js'),
     socialRoutes: require('./social.js'),
-    userRoutes: require('./users.js')
+    userRoutes: require('./users.js'),
+    notificationRoutes: require('./notifications')
 }

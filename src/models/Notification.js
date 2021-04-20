@@ -48,14 +48,19 @@ module.exports = function(sequelize, DataTypes) {
     }
 
     Notification.findNested = async function (options={}, transactionObject) {
-        const { recipientId, notificationId, offset } = options;
+        const { recipientId, notificationId, offsetId } = options;
         const getWhereClause = () => {
-            if (recipientId) {
+            if (recipientId && offsetId) {
                 return `
-                    WHERE n.recipient_id = '${recipientId}'
+                    WHERE n.recipient_id = '${recipientId}' AND n.id < ${offsetId}
                     ORDER BY n.created_at DESC
-                    LIMIT ${FEED_LIMIT}
-                    OFFSET ${offset || 0};
+                    LIMIT ${FEED_LIMIT};
+                `
+            } else if (recipientId) {
+                return `
+                    WHERE n.recipient_id = '${recipientId}' 
+                    ORDER BY n.created_at DESC
+                    LIMIT ${FEED_LIMIT};
                 `
             } else if (notificationId) {
                 return `
@@ -64,8 +69,7 @@ module.exports = function(sequelize, DataTypes) {
             } else {
                 return `
                     ORDER BY n.created_at DESC
-                    LIMIT ${FEED_LIMIT}
-                    OFFSET ${offset || 0};
+                    LIMIT ${FEED_LIMIT};
                 `
             }
         }

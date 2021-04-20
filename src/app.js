@@ -26,6 +26,7 @@ app.use('/api/users', routes.userRoutes);
 app.use('/api/recipes', routes.recipeRoutes);
 app.use('/api/social', routes.socialRoutes);
 app.use('/api/reviews', routes.reviewRoutes);
+app.use('/api/notifications', routes.notificationRoutes);
 
 //-------------ERROR HANDLING--------------//
 app.use(errorHandler)
