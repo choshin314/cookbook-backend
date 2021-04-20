@@ -1,23 +1,15 @@
 require('dotenv').config();
-const fs = require('fs');
 const cors = require('cors');
 const express = require('express');
 const app = express();
+const server = require('http').createServer(app);
+const io = require('socket.io')(server, require('./sockets/config'));
 const db = require('./models');
-const authRoutes = require('./routes/auth');
-const accountRoutes = require('./routes/account');
-const userRoutes = require('./routes/users');
-const recipeRoutes = require('./routes/recipes');
-const socialRoutes = require('./routes/social');
-const reviewRoutes = require('./routes/reviews');
-const HttpError = require('./helpers/http-error');
+const routes = require('./routes');
+const errorHandler = require('./middleware/errorHandler');
+const notificationHandler = require('./sockets/notificationHandler');
 
 //-------------DB--------------//
-db.initDedicatedListener((msgPayload) => {
-    console.log('msg received')
-    console.log(msgPayload)
-})
-
 db.sequelize.authenticate()
     .then(() => console.log('database connected'))
     .catch(err => console.log('Error: ' + err));
@@ -28,20 +20,26 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 //-------------ROUTES--------------//
-app.use('/api/auth', authRoutes);
-app.use('/api/account', accountRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/recipes', recipeRoutes);
-app.use('/api/social', socialRoutes);
-app.use('/api/reviews', reviewRoutes);
+app.use('/api/auth', routes.authRoutes);
+app.use('/api/account', routes.accountRoutes);
+app.use('/api/users', routes.userRoutes);
+app.use('/api/recipes', routes.recipeRoutes);
+app.use('/api/social', routes.socialRoutes);
+app.use('/api/reviews', routes.reviewRoutes);
 
 //-------------ERROR HANDLING--------------//
-app.use((err, req, res, next) => {
-    console.log(err.message);
-    HttpError.handleError(err, res);
-})
+app.use(errorHandler)
 
-app.listen(process.env.PORT || 5001, () => {
+function onConnection(socket) {
+    const { user } = socket.handshake.headers;
+    console.log('a user connected: ' + user);
+    socket.join(user);
+    notificationHandler(io, user)
+}
+
+io.on('connection', onConnection)
+
+server.listen(process.env.PORT || 5001, () => {
     console.log(`Listening on port ${process.env.PORT || 5001}`)
 })
 

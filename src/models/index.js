@@ -6,18 +6,14 @@ const { Client } = require('pg')
 const db = {};
 
 //-------------DB--------------//
-const initDedicatedListener = async (notificationCallback) => {
+const initDedicatedClient = () => {
     const client = new Client({ connectionString: DATABASE_URL });
-    try {
-        await client.connect();
-        await client.query('LISTEN new_notification')
-        client.on('notification', msg => {
-            console.log(msg.payload)
-            notificationCallback(msg.payload)
-        })
-    } catch(err) {
-        console.error('pg client connection error', err.stack)
-    }
+    client.connect();
+    console.log('pg client connected')
+    client.query('LISTEN new_notification', (err,res) => {
+        if (err) console.log(err.stack)
+    })
+    return client
 }
 
 let sequelize = new Sequelize(DATABASE_URL, config);
@@ -51,6 +47,7 @@ db.rawConfig = (model) => ({
 });
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
-db.initDedicatedListener = initDedicatedListener;
+db.pgClient = initDedicatedClient();
+// db.initDedicatedClient = initDedicatedClient;
 
 module.exports = db;
