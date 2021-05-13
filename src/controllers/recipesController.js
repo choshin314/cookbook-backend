@@ -129,9 +129,15 @@ const getRecipeSearchResults = async (req, res, next) => {
         let limitAndOffset = { subQuery: false, limit: SEARCH_LIMIT, offset: parseInt(o) || 0 };
         if (!q) return res.json({ data: [] });
         q = q.trim();
+        //for tags, replace space from query string with _
+        //todo: since tag queries are already coming converted _ to space, maybe change tag content to spaced instead of
+        //underscored.  No point underscoring if it requires extra conversion.  Also would be easier / more consistent
+        //when doing general serach.  This conversion hack only works if searching specifically for tags. 
+        const tagFormattedQuery = q.replace(/ /g,'\_'); 
+
         switch (filter) {
             case "tags": {
-                const formattedQuery = q.replace(/[^\w ]+/g,'').replace(/ +|_/g,'_');
+                
                 const matchingRecipes = await sequelize.query(`
                     SELECT id FROM (
                         SELECT DISTINCT ON (recipes.id)
@@ -143,7 +149,7 @@ const getRecipeSearchResults = async (req, res, next) => {
                         FROM recipes 
                         LEFT JOIN tags ON recipes.id = tags.recipe_id
                         LEFT JOIN reviews ON recipes.id = reviews.recipe_id
-                        WHERE tags.content ILIKE '%${q}%' 
+                        WHERE tags.content ILIKE '%${tagFormattedQuery}%' 
                         GROUP BY recipes.id, tags.content, tags.id
                         ORDER BY recipes.id
                     ) t
@@ -193,7 +199,7 @@ const getRecipeSearchResults = async (req, res, next) => {
                         LEFT JOIN tags ON recipes.id = tags.recipe_id
                         LEFT JOIN reviews ON recipes.id = reviews.recipe_id
                         WHERE 
-                            tags.content ILIKE '%${q}%' OR 
+                            tags.content ILIKE '%${tagFormattedQuery}%' OR 
                             recipes.title ILIKE '%${q}%'
                         GROUP BY recipes.id, tags.content, tags.id
                         ORDER BY recipes.id
